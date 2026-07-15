@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import {
   Award,
@@ -31,27 +31,22 @@ import {
   BUSINESS_SKILLS,
   BUSINESS_SKILL_OPTIONS,
   CERTIFICATIONS,
-  CERTIFICATIONS_SECTION,
   CERTIFICATION_FORM_FIELDS,
   CONTRACT_TYPE_OPTIONS,
   EDUCATION,
   EDUCATION_FORM_FIELDS,
-  EDUCATION_SECTION,
   EMPLOYMENT_TYPE_OPTIONS,
   GENDER_OPTIONS,
   HUMAN_SKILLS,
   HUMAN_SKILL_OPTIONS,
   ITSS_LEVEL_OPTIONS,
   LANGUAGES,
-  LANGUAGES_SECTION,
   LANGUAGE_FORM_FIELDS,
   LANGUAGE_LEVEL_OPTIONS,
   PORTFOLIO_FORM_FIELDS,
   PORTFOLIO_PROJECTS,
-  PORTFOLIO_SECTION,
   PREFERRED_CONDITIONS,
   PREFERRED_CONDITIONS_FORM_FIELDS,
-  PREFERRED_CONDITIONS_SECTION,
   PREVIEW_PANEL_LABELS,
   PROFILE_EDIT_META,
   PROFILE_EDIT_SECTIONS,
@@ -67,7 +62,6 @@ import {
   VISIBILITY_OPTIONS,
   WORK_EXPERIENCE,
   WORK_EXPERIENCE_FORM_FIELDS,
-  WORK_EXPERIENCE_SECTION,
 } from "@/constants/engineer-profile";
 
 const SELECT_CLASS =
@@ -411,7 +405,7 @@ export function ProfileEditForm() {
     setBasicInfo((prev) => ({ ...prev, [key]: value }));
   }
 
-  const [bio, setBio] = useState(BASIC_INFO.bio);
+  const [bio, setBio] = useState<string>(BASIC_INFO.bio);
 
   const technicalSkills = useTechnicalSkillRows(
     TECHNICAL_SKILLS.map((skill, index) => ({
@@ -519,7 +513,7 @@ export function ProfileEditForm() {
   const [saved, setSaved] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaved(true);
   }
@@ -751,7 +745,7 @@ export function ProfileEditForm() {
         <div className="flex flex-col gap-5">
           {workExperience.map((row, index) => (
             <div
-              // eslint-disable-next-line react/no-array-index-key
+               
               key={index}
               className="flex flex-col gap-4 rounded-xl border border-border p-4"
             >
@@ -856,7 +850,7 @@ export function ProfileEditForm() {
         <div className="flex flex-col gap-5">
           {education.map((row, index) => (
             <div
-              // eslint-disable-next-line react/no-array-index-key
+               
               key={index}
               className="flex flex-col gap-4 rounded-xl border border-border p-4"
             >
@@ -926,7 +920,7 @@ export function ProfileEditForm() {
         <div className="flex flex-col gap-5">
           {certifications.map((row, index) => (
             <div
-              // eslint-disable-next-line react/no-array-index-key
+               
               key={index}
               className="flex flex-col gap-4 rounded-xl border border-border p-4"
             >
@@ -1012,7 +1006,7 @@ export function ProfileEditForm() {
         <div className="flex flex-col gap-5">
           {portfolio.map((row, index) => (
             <div
-              // eslint-disable-next-line react/no-array-index-key
+               
               key={index}
               className="flex flex-col gap-4 rounded-xl border border-border p-4"
             >

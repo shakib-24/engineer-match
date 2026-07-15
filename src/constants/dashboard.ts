@@ -8,7 +8,7 @@
 export const ENGINEER_NAV = [
   { href: "/engineer/dashboard", label: "ダッシュボード", icon: "layoutDashboard" },
   { href: "/engineer/profile", label: "プロフィール", icon: "userRound" },
-  { href: "/engineer/opportunities", label: "求人・案件を探す", icon: "search" },
+  { href: "/engineer/jobs", label: "求人・案件を探す", icon: "search" },
   { href: "/engineer/applications", label: "応募管理", icon: "clipboardList" },
   { href: "/engineer/messages", label: "メッセージ", icon: "messageSquare" },
   { href: "/engineer/notifications", label: "通知", icon: "bell" },
@@ -63,7 +63,7 @@ export const ENGINEER_RECOMMENDED_OPPORTUNITIES = {
   title: "おすすめの求人・案件",
   description: "あなたのスキルに合った求人・案件をご紹介します。",
   viewAllLabel: "すべて見る",
-  viewAllHref: "/engineer/opportunities",
+  viewAllHref: "/engineer/jobs",
   items: [
     {
       company: "株式会社テックイノベーション",
