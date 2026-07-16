@@ -3,16 +3,16 @@
 import { useState } from "react";
 import { Bookmark, CheckCircle2, MapPin, Share2 } from "lucide-react";
 import {
-  APPLY_CARD_LABELS,
+  APPLY_SIDEBAR_LABELS,
   CONTRACT_TYPE_BADGE_STYLES,
   type Job,
 } from "@/constants/jobs";
 
-interface ApplyCardProps {
+interface ApplySidebarProps {
   job: Job;
 }
 
-export function ApplyCard({ job }: ApplyCardProps) {
+export function ApplySidebar({ job }: ApplySidebarProps) {
   const [hasApplied, setHasApplied] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [hasShared, setHasShared] = useState(false);
@@ -40,7 +40,7 @@ export function ApplyCard({ job }: ApplyCardProps) {
       {hasApplied ? (
         <div className="mt-5 flex items-start gap-2 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>{APPLY_CARD_LABELS.appliedMessage}</span>
+          <span>{APPLY_SIDEBAR_LABELS.appliedMessage}</span>
         </div>
       ) : (
         <button
@@ -48,7 +48,7 @@ export function ApplyCard({ job }: ApplyCardProps) {
           onClick={() => setHasApplied(true)}
           className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
         >
-          {APPLY_CARD_LABELS.applyLabel}
+          {APPLY_SIDEBAR_LABELS.applyLabel}
         </button>
       )}
 
@@ -68,8 +68,8 @@ export function ApplyCard({ job }: ApplyCardProps) {
             aria-hidden="true"
           />
           {isBookmarked
-            ? APPLY_CARD_LABELS.favoritedLabel
-            : APPLY_CARD_LABELS.favoriteLabel}
+            ? APPLY_SIDEBAR_LABELS.favoritedLabel
+            : APPLY_SIDEBAR_LABELS.favoriteLabel}
         </button>
         <button
           type="button"
@@ -77,16 +77,16 @@ export function ApplyCard({ job }: ApplyCardProps) {
           className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <Share2 className="h-4 w-4" aria-hidden="true" />
-          {hasShared ? APPLY_CARD_LABELS.sharedLabel : APPLY_CARD_LABELS.shareLabel}
+          {hasShared ? APPLY_SIDEBAR_LABELS.sharedLabel : APPLY_SIDEBAR_LABELS.shareLabel}
         </button>
       </div>
 
       <p className="mt-4 text-xs text-muted-foreground">
-        {APPLY_CARD_LABELS.demoNote}
+        {APPLY_SIDEBAR_LABELS.demoNote}
       </p>
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
-        {APPLY_CARD_LABELS.updatedLabel}：{job.updatedLabel}
+        {APPLY_SIDEBAR_LABELS.updatedLabel}：{job.updatedLabel}
       </p>
     </div>
   );

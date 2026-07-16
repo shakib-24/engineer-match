@@ -1,22 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Bookmark, MapPin } from "lucide-react";
-import { SkillBadge } from "@/components/jobs/SkillBadge";
+import { ItssBadge } from "@/components/engineer/profile/ItssBadge";
 import {
   CONTRACT_TYPE_BADGE_STYLES,
   JOB_LIST_META,
+  WORK_STYLE_BADGE_STYLES,
   type Job,
 } from "@/constants/jobs";
 
 interface JobCardProps {
   job: Job;
+  isBookmarked: boolean;
+  onToggleBookmark: (id: string) => void;
 }
 
-export function JobCard({ job }: JobCardProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false);
-
+export function JobCard({ job, isBookmarked, onToggleBookmark }: JobCardProps) {
   return (
     <div className="group rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-6">
       <div className="flex items-start justify-between gap-4">
@@ -26,6 +26,11 @@ export function JobCard({ job }: JobCardProps) {
               className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${CONTRACT_TYPE_BADGE_STYLES[job.contractType]}`}
             >
               {job.contractType}
+            </span>
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${WORK_STYLE_BADGE_STYLES[job.workStyle]}`}
+            >
+              {job.workStyle}
             </span>
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
@@ -42,7 +47,7 @@ export function JobCard({ job }: JobCardProps) {
 
         <button
           type="button"
-          onClick={() => setIsBookmarked((prev) => !prev)}
+          onClick={() => onToggleBookmark(job.id)}
           aria-pressed={isBookmarked}
           aria-label={
             isBookmarked ? JOB_LIST_META.bookmarkedLabel : JOB_LIST_META.bookmarkLabel
@@ -56,14 +61,21 @@ export function JobCard({ job }: JobCardProps) {
         </button>
       </div>
 
-      <p className="mt-3 text-sm font-semibold text-foreground">
-        {job.salaryLabel}
-      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <p className="text-sm font-semibold text-foreground">{job.salaryLabel}</p>
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <ItssBadge level={job.itssLevel} size="sm" />
+          {JOB_LIST_META.itssRecommendationLabel}
+        </span>
+      </div>
 
       <ul className="mt-3 flex flex-wrap gap-1.5">
-        {job.skills.map((skill) => (
-          <li key={skill}>
-            <SkillBadge label={skill} />
+        {job.requiredSkills.slice(0, 5).map((skill) => (
+          <li
+            key={skill}
+            className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+          >
+            {skill}
           </li>
         ))}
       </ul>

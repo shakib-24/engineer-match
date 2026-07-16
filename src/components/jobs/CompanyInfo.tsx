@@ -1,15 +1,15 @@
 import { Building2 } from "lucide-react";
 import {
-  COMPANY_CARD_LABELS,
+  COMPANY_INFO_LABELS,
   JOB_DETAIL_SECTION_LABELS,
   type Job,
 } from "@/constants/jobs";
 
-interface CompanyCardProps {
+interface CompanyInfoProps {
   job: Job;
 }
 
-export function CompanyCard({ job }: CompanyCardProps) {
+export function CompanyInfo({ job }: CompanyInfoProps) {
   const { companyInfo } = job;
 
   return (
@@ -36,7 +36,7 @@ export function CompanyCard({ job }: CompanyCardProps) {
       <dl className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <dt className="text-xs text-muted-foreground">
-            {COMPANY_CARD_LABELS.businessLabel}
+            {COMPANY_INFO_LABELS.businessLabel}
           </dt>
           <dd className="mt-1 text-sm font-medium text-foreground">
             {companyInfo.business}
@@ -44,7 +44,7 @@ export function CompanyCard({ job }: CompanyCardProps) {
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">
-            {COMPANY_CARD_LABELS.employeesLabel}
+            {COMPANY_INFO_LABELS.employeesLabel}
           </dt>
           <dd className="mt-1 text-sm font-medium text-foreground">
             {companyInfo.employees}
@@ -52,7 +52,7 @@ export function CompanyCard({ job }: CompanyCardProps) {
         </div>
         <div className="min-w-0 sm:col-span-2">
           <dt className="text-xs text-muted-foreground">
-            {COMPANY_CARD_LABELS.websiteLabel}
+            {COMPANY_INFO_LABELS.websiteLabel}
           </dt>
           <dd className="mt-1 truncate text-sm font-medium">
             <a

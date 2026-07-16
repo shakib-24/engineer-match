@@ -16,18 +16,19 @@ export const SEARCH_HEADER = {
 } as const;
 
 // ============================================================
-// Filter panel
+// Filter options
 // ============================================================
 
-export const FILTER_PANEL_LABELS = {
+export const FILTER_LABELS = {
   title: "絞り込み条件",
   contractType: "契約形態",
   location: "勤務地",
-  skills: "スキル",
+  workStyle: "勤務形態",
   itssLevel: "ITSSレベル",
+  experience: "経験年数",
   salary: "給与・単価",
+  updated: "更新日",
   resetLabel: "条件をリセット",
-  applyLabel: "検索する",
 } as const;
 
 export const CONTRACT_TYPE_FILTER_OPTIONS = ["就職", "案件", "時間清算"] as const;
@@ -37,31 +38,62 @@ export const LOCATION_FILTER_OPTIONS = [
   "神奈川県",
   "大阪府",
   "愛知県",
-  "リモート",
+  "福岡県",
 ] as const;
 
-export const SKILL_FILTER_OPTIONS = [
-  "React",
-  "TypeScript",
-  "Java",
-  "Spring Boot",
-  "Python",
-  "AWS",
-  "Docker",
-  "PostgreSQL",
+export const WORK_STYLE_FILTER_OPTIONS = [
+  "フルリモート",
+  "一部リモート",
+  "出社",
 ] as const;
 
 export const ITSS_LEVEL_FILTER_OPTIONS = [1, 2, 3, 4, 5, 6, 7] as const;
 
+export const EXPERIENCE_FILTER_OPTIONS = [
+  { label: "指定なし", years: null },
+  { label: "1年以上", years: 1 },
+  { label: "3年以上", years: 3 },
+  { label: "5年以上", years: 5 },
+] as const;
+
+export const UPDATED_FILTER_OPTIONS = [
+  { label: "指定なし", days: null },
+  { label: "3日以内", days: 3 },
+  { label: "1週間以内", days: 7 },
+  { label: "1ヶ月以内", days: 30 },
+] as const;
+
 export const SALARY_RANGE_CONFIG = {
   min: 300,
-  max: 1200,
+  max: 1600,
   step: 50,
   unit: "万円",
 } as const;
 
+export interface FilterState {
+  contractTypes: string[];
+  locations: string[];
+  workStyles: string[];
+  itssLevels: number[];
+  experienceYears: number | null;
+  salaryMin: number;
+  salaryMax: number;
+  updatedWithinDays: number | null;
+}
+
+export const DEFAULT_FILTER_STATE: FilterState = {
+  contractTypes: [],
+  locations: [],
+  workStyles: [],
+  itssLevels: [],
+  experienceYears: null,
+  salaryMin: SALARY_RANGE_CONFIG.min,
+  salaryMax: SALARY_RANGE_CONFIG.max,
+  updatedWithinDays: null,
+};
+
 // ============================================================
-// Badge style maps (shared across job cards / detail / apply card)
+// Badge style maps (shared across job cards / detail / apply sidebar)
 // ============================================================
 
 export const CONTRACT_TYPE_BADGE_STYLES: Record<string, string> = {
@@ -75,8 +107,14 @@ export const STATUS_BADGE_STYLES: Record<string, string> = {
   締切間近: "bg-red-50 text-red-700",
 };
 
+export const WORK_STYLE_BADGE_STYLES: Record<string, string> = {
+  フルリモート: "bg-teal-50 text-teal-700",
+  一部リモート: "bg-cyan-50 text-cyan-700",
+  出社: "bg-muted text-muted-foreground",
+};
+
 // ============================================================
-// Job list
+// Job list / job card
 // ============================================================
 
 export const JOB_LIST_META = {
@@ -85,6 +123,31 @@ export const JOB_LIST_META = {
   bookmarkedLabel: "お気に入り済み",
   detailButtonLabel: "詳細を見る",
   postedPrefix: "掲載日：",
+  itssRecommendationLabel: "推奨ITSSレベル",
+} as const;
+
+export const EMPTY_STATE_LABELS = {
+  title: "条件に一致する求人・案件が見つかりませんでした。",
+  description: "検索キーワードや絞り込み条件を変更してお試しください。",
+  resetLabel: "条件をリセット",
+} as const;
+
+export const PAGINATION_LABELS = {
+  previousLabel: "前へ",
+  nextLabel: "次へ",
+  pageLabelPrefix: "ページ",
+} as const;
+
+export const FILTER_DRAWER_LABELS = {
+  openLabel: "絞り込み",
+  title: "絞り込み条件",
+  closeLabel: "閉じる",
+  applyLabel: "この条件で絞り込む",
+} as const;
+
+export const ACTIVE_FILTERS_LABELS = {
+  clearAllLabel: "すべてクリア",
+  removeLabelPrefix: "フィルターを削除：",
 } as const;
 
 // ============================================================
@@ -107,10 +170,7 @@ export const RECOMMENDED_SKILLS = [
   "Go",
 ] as const;
 
-export const SAVED_JOBS_MOCK = [
-  { id: "3", title: "バックエンドエンジニア（Java / Spring Boot）", company: "株式会社テックイノベーション" },
-  { id: "9", title: "AIエンジニア（Python / 機械学習）", company: "株式会社データフォレスト" },
-] as const;
+export const DEFAULT_BOOKMARKED_JOB_IDS = ["3", "9"] as const;
 
 // ============================================================
 // Job detail — section labels
@@ -124,22 +184,21 @@ export const JOB_DETAIL_META = {
 export const JOB_DETAIL_SECTION_LABELS = {
   responsibilitiesTitle: "仕事内容",
   requirementsTitle: "応募条件",
-  skillsTitle: "スキル",
-  requiredSkillsLabel: "必須スキル",
-  preferredSkillsLabel: "歓迎スキル",
+  requiredSkillsTitle: "必須スキル",
+  preferredSkillsTitle: "歓迎スキル",
   workConditionsTitle: "勤務条件",
   benefitsTitle: "福利厚生",
   selectionFlowTitle: "選考フロー",
   companyInfoTitle: "企業情報",
 } as const;
 
-export const COMPANY_CARD_LABELS = {
+export const COMPANY_INFO_LABELS = {
   businessLabel: "事業内容",
   employeesLabel: "従業員数",
   websiteLabel: "コーポレートサイト",
 } as const;
 
-export const APPLY_CARD_LABELS = {
+export const APPLY_SIDEBAR_LABELS = {
   applyLabel: "応募する",
   favoriteLabel: "お気に入り",
   favoritedLabel: "お気に入り済み",
@@ -151,7 +210,7 @@ export const APPLY_CARD_LABELS = {
 } as const;
 
 // ============================================================
-// Jobs (12 mock listings)
+// Jobs (15 mock listings)
 // ============================================================
 
 export interface WorkCondition {
@@ -174,15 +233,19 @@ export interface Job {
   companyInitials: string;
   contractType: (typeof CONTRACT_TYPE_FILTER_OPTIONS)[number];
   location: string;
-  remote: boolean;
+  workStyle: (typeof WORK_STYLE_FILTER_OPTIONS)[number];
   status: "募集中" | "締切間近";
   salaryLabel: string;
+  salaryMinManYen: number;
+  salaryMaxManYen: number;
   skills: string[];
   requiredSkills: string[];
   preferredSkills: string[];
   itssLevel: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  experienceYearsMin: number;
   postedLabel: string;
   updatedLabel: string;
+  updatedDaysAgo: number;
   description: string;
   responsibilities: string[];
   requirements: string[];
@@ -200,16 +263,20 @@ export const JOBS: Job[] = [
     company: "合同会社クラウドフォース",
     companyInitials: "ク",
     contractType: "案件",
-    location: "フルリモート",
-    remote: true,
+    location: "東京都",
+    workStyle: "フルリモート",
     status: "募集中",
     salaryLabel: "月額 60万円〜90万円",
+    salaryMinManYen: 720,
+    salaryMaxManYen: 1080,
     skills: ["React", "TypeScript", "Next.js"],
     requiredSkills: ["React", "TypeScript", "Next.js", "HTML/CSS"],
     preferredSkills: ["GraphQL", "Storybook", "Figma"],
     itssLevel: 3,
+    experienceYearsMin: 2,
     postedLabel: "3日前",
     updatedLabel: "2026年7月13日",
+    updatedDaysAgo: 3,
     description:
       "大手小売企業向けECサイトのフロントエンド刷新プロジェクトです。React / TypeScriptを用いたコンポーネント設計から、表示速度改善までを幅広く担当していただきます。",
     responsibilities: [
@@ -252,15 +319,19 @@ export const JOBS: Job[] = [
     companyInitials: "ウ",
     contractType: "就職",
     location: "東京都",
-    remote: false,
+    workStyle: "一部リモート",
     status: "募集中",
     salaryLabel: "年収 480万円〜700万円",
+    salaryMinManYen: 480,
+    salaryMaxManYen: 700,
     skills: ["Vue.js", "Nuxt3", "TypeScript"],
     requiredSkills: ["Vue.js", "Nuxt3", "TypeScript"],
     preferredSkills: ["Nuxt Content", "Tailwind CSS", "Jest"],
     itssLevel: 3,
+    experienceYearsMin: 2,
     postedLabel: "1週間前",
     updatedLabel: "2026年7月9日",
+    updatedDaysAgo: 7,
     description:
       "自社予約管理SaaSのフロントエンド開発を担当するポジションです。Vue3 / Nuxt3への移行プロジェクトを中心に、機能開発から設計改善まで携われます。",
     responsibilities: [
@@ -279,12 +350,7 @@ export const JOBS: Job[] = [
       { label: "休日休暇", value: "完全週休2日制（土日祝）・年間休日125日" },
       { label: "雇用形態", value: "正社員" },
     ],
-    benefits: [
-      "社会保険完備",
-      "住宅手当",
-      "健康診断",
-      "資格取得支援制度",
-    ],
+    benefits: ["社会保険完備", "住宅手当", "健康診断", "資格取得支援制度"],
     selectionFlow: [
       "書類選考",
       "一次面接（オンライン）",
@@ -308,15 +374,19 @@ export const JOBS: Job[] = [
     companyInitials: "テ",
     contractType: "就職",
     location: "東京都",
-    remote: false,
+    workStyle: "出社",
     status: "募集中",
     salaryLabel: "年収 500万円〜800万円",
+    salaryMinManYen: 500,
+    salaryMaxManYen: 800,
     skills: ["Java", "Spring Boot", "AWS"],
     requiredSkills: ["Java", "Spring Boot", "PostgreSQL"],
     preferredSkills: ["AWS", "Docker", "Kubernetes"],
     itssLevel: 4,
+    experienceYearsMin: 3,
     postedLabel: "2日前",
     updatedLabel: "2026年7月14日",
+    updatedDaysAgo: 2,
     description:
       "自社SaaSプロダクトのバックエンド開発をリードするポジションです。マイクロサービス基盤の設計・実装を通じて、プロダクトのスケールを支えていただきます。",
     responsibilities: [
@@ -364,16 +434,20 @@ export const JOBS: Job[] = [
     company: "株式会社ゼロトラスト",
     companyInitials: "ゼ",
     contractType: "案件",
-    location: "フルリモート",
-    remote: true,
+    location: "東京都",
+    workStyle: "フルリモート",
     status: "募集中",
     salaryLabel: "月額 70万円〜100万円",
+    salaryMinManYen: 840,
+    salaryMaxManYen: 1200,
     skills: ["Go", "Docker", "PostgreSQL"],
     requiredSkills: ["Go", "PostgreSQL", "Docker"],
     preferredSkills: ["Kubernetes", "gRPC", "AWS"],
     itssLevel: 4,
+    experienceYearsMin: 2,
     postedLabel: "5日前",
     updatedLabel: "2026年7月11日",
+    updatedDaysAgo: 5,
     description:
       "認証基盤SaaSのバックエンドAPI開発を担当いただきます。Goによる高パフォーマンスなマイクロサービスの設計・実装経験を活かせるポジションです。",
     responsibilities: [
@@ -409,16 +483,20 @@ export const JOBS: Job[] = [
     company: "株式会社アナリティクスラボ",
     companyInitials: "ア",
     contractType: "案件",
-    location: "フルリモート",
-    remote: true,
+    location: "東京都",
+    workStyle: "フルリモート",
     status: "募集中",
     salaryLabel: "月額 65万円〜95万円",
+    salaryMinManYen: 780,
+    salaryMaxManYen: 1140,
     skills: ["Next.js", "Node.js", "TypeScript"],
     requiredSkills: ["Next.js", "Node.js", "TypeScript", "PostgreSQL"],
     preferredSkills: ["GraphQL", "AWS", "Docker"],
     itssLevel: 3,
+    experienceYearsMin: 2,
     postedLabel: "4日前",
     updatedLabel: "2026年7月12日",
+    updatedDaysAgo: 4,
     description:
       "データ分析ダッシュボードSaaSの開発チームにジョインし、フロントエンドからAPI開発まで一貫して担当していただきます。",
     responsibilities: [
@@ -455,15 +533,19 @@ export const JOBS: Job[] = [
     companyInitials: "デ",
     contractType: "時間清算",
     location: "東京都",
-    remote: true,
+    workStyle: "一部リモート",
     status: "締切間近",
     salaryLabel: "時間単価 4,500円〜6,000円",
+    salaryMinManYen: 864,
+    salaryMaxManYen: 1152,
     skills: ["TypeScript", "React", "AWS"],
     requiredSkills: ["TypeScript", "React", "AWS", "Node.js"],
     preferredSkills: ["Terraform", "GraphQL"],
     itssLevel: 3,
+    experienceYearsMin: 3,
     postedLabel: "1週間前",
     updatedLabel: "2026年7月8日",
+    updatedDaysAgo: 8,
     description:
       "受託開発案件にて、フロントエンドからバックエンド・インフラまで一貫して対応いただけるエンジニアを募集しています。",
     responsibilities: [
@@ -500,15 +582,19 @@ export const JOBS: Job[] = [
     companyInitials: "イ",
     contractType: "就職",
     location: "東京都",
-    remote: false,
+    workStyle: "出社",
     status: "募集中",
     salaryLabel: "年収 550万円〜850万円",
+    salaryMinManYen: 550,
+    salaryMaxManYen: 850,
     skills: ["AWS", "Docker", "Terraform"],
     requiredSkills: ["AWS", "Docker", "Linux"],
     preferredSkills: ["Terraform", "Kubernetes", "Python"],
     itssLevel: 4,
+    experienceYearsMin: 3,
     postedLabel: "6日前",
     updatedLabel: "2026年7月10日",
+    updatedDaysAgo: 6,
     description:
       "自社サービスのクラウドインフラ設計・構築・運用を担当するポジションです。AWSを中心としたインフラのモダナイズを推進していただきます。",
     responsibilities: [
@@ -555,16 +641,20 @@ export const JOBS: Job[] = [
     company: "株式会社スケールワークス",
     companyInitials: "ス",
     contractType: "案件",
-    location: "フルリモート",
-    remote: true,
+    location: "東京都",
+    workStyle: "フルリモート",
     status: "募集中",
     salaryLabel: "月額 75万円〜105万円",
+    salaryMinManYen: 900,
+    salaryMaxManYen: 1260,
     skills: ["GCP", "Terraform", "Kubernetes"],
     requiredSkills: ["GCP", "Terraform", "Kubernetes"],
     preferredSkills: ["AWS", "Python", "Datadog"],
     itssLevel: 5,
+    experienceYearsMin: 3,
     postedLabel: "3日前",
     updatedLabel: "2026年7月13日",
+    updatedDaysAgo: 3,
     description:
       "GCP上で稼働するマイクロサービス基盤の設計・構築を担当していただきます。Terraformを用いたIaC推進の中心メンバーとして活躍いただけるポジションです。",
     responsibilities: [
@@ -602,15 +692,19 @@ export const JOBS: Job[] = [
     companyInitials: "デ",
     contractType: "就職",
     location: "東京都",
-    remote: true,
+    workStyle: "一部リモート",
     status: "募集中",
     salaryLabel: "年収 600万円〜900万円",
+    salaryMinManYen: 600,
+    salaryMaxManYen: 900,
     skills: ["Python", "機械学習", "AWS"],
     requiredSkills: ["Python", "機械学習", "SQL"],
     preferredSkills: ["AWS", "Docker", "MLOps"],
     itssLevel: 5,
+    experienceYearsMin: 2,
     postedLabel: "2日前",
     updatedLabel: "2026年7月14日",
+    updatedDaysAgo: 2,
     description:
       "需要予測モデルの開発・改善を担当するAIエンジニアを募集しています。データ収集からモデルの本番運用まで一気通貫で携われるポジションです。",
     responsibilities: [
@@ -658,16 +752,20 @@ export const JOBS: Job[] = [
     company: "株式会社ニューラルゲート",
     companyInitials: "ニ",
     contractType: "案件",
-    location: "フルリモート",
-    remote: true,
+    location: "東京都",
+    workStyle: "フルリモート",
     status: "募集中",
     salaryLabel: "月額 90万円〜130万円",
+    salaryMinManYen: 1080,
+    salaryMaxManYen: 1560,
     skills: ["Python", "LLM", "AWS"],
     requiredSkills: ["Python", "LLM", "RAG"],
     preferredSkills: ["LangChain", "AWS", "Docker"],
     itssLevel: 5,
+    experienceYearsMin: 3,
     postedLabel: "1日前",
     updatedLabel: "2026年7月15日",
+    updatedDaysAgo: 1,
     description:
       "生成AIを活用した社内向けナレッジ検索サービスの開発を担当していただきます。RAG構成の設計・実装経験を活かせるポジションです。",
     responsibilities: [
@@ -705,15 +803,19 @@ export const JOBS: Job[] = [
     companyInitials: "パ",
     contractType: "案件",
     location: "神奈川県",
-    remote: true,
+    workStyle: "フルリモート",
     status: "募集中",
     salaryLabel: "月額 70万円〜100万円",
+    salaryMinManYen: 840,
+    salaryMaxManYen: 1200,
     skills: ["Kubernetes", "Docker", "AWS"],
     requiredSkills: ["Kubernetes", "Docker", "CI/CD"],
     preferredSkills: ["AWS", "Terraform", "Datadog"],
     itssLevel: 4,
+    experienceYearsMin: 2,
     postedLabel: "5日前",
     updatedLabel: "2026年7月11日",
+    updatedDaysAgo: 5,
     description:
       "複数プロダクトを横断するプラットフォームチームにて、CI/CDパイプラインの整備とKubernetes基盤の運用改善を担当していただきます。",
     responsibilities: [
@@ -750,15 +852,19 @@ export const JOBS: Job[] = [
     companyInitials: "ブ",
     contractType: "就職",
     location: "大阪府",
-    remote: false,
+    workStyle: "一部リモート",
     status: "募集中",
     salaryLabel: "年収 650万円〜950万円",
+    salaryMinManYen: 650,
+    salaryMaxManYen: 950,
     skills: ["プロジェクトマネジメント", "AWS", "Java"],
     requiredSkills: ["プロジェクトマネジメント", "要件定義"],
     preferredSkills: ["AWS", "Java", "アジャイル開発"],
     itssLevel: 5,
+    experienceYearsMin: 3,
     postedLabel: "1週間前",
     updatedLabel: "2026年7月9日",
+    updatedDaysAgo: 7,
     description:
       "官公庁・大手企業向けシステム開発プロジェクトのPMを募集しています。要件定義から本番リリースまでのプロジェクト全体を統括していただきます。",
     responsibilities: [
@@ -784,18 +890,174 @@ export const JOBS: Job[] = [
       "資格取得支援制度",
       "退職金制度",
     ],
-    selectionFlow: [
-      "書類選考",
-      "一次面接",
-      "二次面接（役員面接）",
-      "内定",
-    ],
+    selectionFlow: ["書類選考", "一次面接", "二次面接（役員面接）", "内定"],
     companyInfo: {
       description:
         "官公庁・大手企業向けのシステム開発を中心に手がけるSIer。安定した経営基盤のもと、大規模プロジェクトに携われます。",
       business: "システムインテグレーション（官公庁・大手企業向け）",
       employees: "310名",
       website: "https://bridge-solutions.example.com",
+    },
+  },
+  {
+    id: "13",
+    title: "QAエンジニア（自動化テスト）",
+    category: "QA",
+    company: "株式会社クオリティファースト",
+    companyInitials: "ク",
+    contractType: "就職",
+    location: "東京都",
+    workStyle: "一部リモート",
+    status: "募集中",
+    salaryLabel: "年収 480万円〜680万円",
+    salaryMinManYen: 480,
+    salaryMaxManYen: 680,
+    skills: ["Selenium", "Python", "JSTQB"],
+    requiredSkills: ["テスト設計", "Selenium", "JSTQB Foundation Level"],
+    preferredSkills: ["Python", "CI/CD", "APIテスト"],
+    itssLevel: 3,
+    experienceYearsMin: 2,
+    postedLabel: "2日前",
+    updatedLabel: "2026年7月14日",
+    updatedDaysAgo: 2,
+    description:
+      "自社SaaSプロダクトのQAエンジニアとして、テスト計画の立案から自動テストの構築・運用までを担当していただきます。",
+    responsibilities: [
+      "テスト計画・テストケースの設計",
+      "Seleniumを用いたE2Eテストの自動化",
+      "リリース前の品質保証プロセスの運用",
+      "開発チームとの品質改善に向けた連携",
+    ],
+    requirements: [
+      "ソフトウェアテスト業務の実務経験2年以上",
+      "テスト自動化ツールの利用経験",
+      "JSTQB Foundation Level相当の知識",
+    ],
+    workConditions: [
+      { label: "勤務地", value: "東京都品川区（週3リモート可）" },
+      { label: "就業時間", value: "9:30〜18:30" },
+      { label: "休日休暇", value: "完全週休2日制（土日祝）" },
+      { label: "雇用形態", value: "正社員" },
+    ],
+    benefits: ["社会保険完備", "資格取得支援制度", "書籍購入補助"],
+    selectionFlow: [
+      "書類選考",
+      "一次面接",
+      "技術課題（テスト設計）",
+      "最終面接",
+      "内定",
+    ],
+    companyInfo: {
+      description:
+        "SaaSプロダクトの品質保証に特化したチームを持つ企業。自動化によるQAプロセスの効率化を推進しています。",
+      business: "品質保証・テスト自動化支援",
+      employees: "55名",
+      website: "https://quality-first.example.com",
+    },
+  },
+  {
+    id: "14",
+    title: "セキュリティエンジニア（SOC / 脆弱性診断）",
+    category: "セキュリティ",
+    company: "株式会社シールドテック",
+    companyInitials: "シ",
+    contractType: "案件",
+    location: "東京都",
+    workStyle: "フルリモート",
+    status: "募集中",
+    salaryLabel: "月額 80万円〜110万円",
+    salaryMinManYen: 960,
+    salaryMaxManYen: 1320,
+    skills: ["脆弱性診断", "SIEM", "Python"],
+    requiredSkills: ["脆弱性診断", "ネットワークセキュリティ", "インシデント対応"],
+    preferredSkills: ["SIEM運用", "Python", "CISSP"],
+    itssLevel: 5,
+    experienceYearsMin: 3,
+    postedLabel: "1日前",
+    updatedLabel: "2026年7月15日",
+    updatedDaysAgo: 1,
+    description:
+      "自社および顧客システムのセキュリティ診断・監視を担当するセキュリティエンジニアを募集しています。",
+    responsibilities: [
+      "Webアプリケーション・インフラの脆弱性診断",
+      "SOCにおけるログ監視・インシデント対応",
+      "セキュリティポリシーの策定・改善",
+      "社内向けセキュリティ教育の実施",
+    ],
+    requirements: [
+      "セキュリティエンジニアとしての実務経験3年以上",
+      "脆弱性診断ツールの使用経験",
+      "インシデント対応の経験",
+    ],
+    workConditions: [
+      { label: "勤務地", value: "フルリモート" },
+      { label: "就業時間", value: "裁量労働" },
+      { label: "契約期間", value: "3ヶ月更新（長期想定）" },
+      { label: "精算幅", value: "140h〜180h" },
+    ],
+    benefits: ["リモート環境手当", "資格取得支援（CISSP等）", "書籍購入補助"],
+    selectionFlow: ["書類選考", "技術面談", "最終面談", "契約締結"],
+    companyInfo: {
+      description:
+        "官公庁・金融機関向けにセキュリティ診断・監視サービスを提供する専門企業。",
+      business: "セキュリティ診断・SOC運用サービス",
+      employees: "65名",
+      website: "https://shieldtech.example.com",
+    },
+  },
+  {
+    id: "15",
+    title: "フルスタックエンジニア（Ruby on Rails）",
+    category: "フルスタック",
+    company: "株式会社グロースパートナーズ",
+    companyInitials: "グ",
+    contractType: "就職",
+    location: "愛知県",
+    workStyle: "一部リモート",
+    status: "募集中",
+    salaryLabel: "年収 500万円〜750万円",
+    salaryMinManYen: 500,
+    salaryMaxManYen: 750,
+    skills: ["Ruby on Rails", "PostgreSQL", "AWS"],
+    requiredSkills: ["Ruby on Rails", "PostgreSQL"],
+    preferredSkills: ["AWS", "Docker", "React"],
+    itssLevel: 3,
+    experienceYearsMin: 2,
+    postedLabel: "6日前",
+    updatedLabel: "2026年7月10日",
+    updatedDaysAgo: 6,
+    description:
+      "地域産業向け業務システムを開発する自社プロダクトチームにて、Ruby on Railsを用いたWebアプリケーション開発を担当していただきます。",
+    responsibilities: [
+      "Ruby on Railsによる業務システムの機能開発",
+      "データベース設計・パフォーマンスチューニング",
+      "要件定義から運用まで一貫した開発への参加",
+    ],
+    requirements: [
+      "Ruby on Railsでの実務経験2年以上",
+      "RDBMSを用いた設計経験",
+      "チームでの開発経験",
+    ],
+    workConditions: [
+      { label: "勤務地", value: "愛知県名古屋市（週2リモート可）" },
+      { label: "就業時間", value: "9:00〜18:00" },
+      { label: "休日休暇", value: "完全週休2日制（土日祝）・年間休日123日" },
+      { label: "雇用形態", value: "正社員" },
+    ],
+    benefits: ["社会保険完備", "住宅手当", "健康診断", "資格取得支援制度"],
+    selectionFlow: [
+      "書類選考",
+      "一次面接",
+      "二次面接（技術面接）",
+      "最終面接",
+      "内定",
+    ],
+    companyInfo: {
+      description:
+        "地域の中小企業向け業務システムを開発する地元密着型のIT企業。安定した顧客基盤のもと、着実に成長しています。",
+      business: "業務システムの受託・自社開発",
+      employees: "78名",
+      website: "https://growth-partners.example.com",
     },
   },
 ];
