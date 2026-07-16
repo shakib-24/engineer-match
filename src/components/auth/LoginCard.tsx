@@ -1,16 +1,33 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
+import { Loader2 } from "lucide-react";
 import { AuthHero } from "@/components/auth/AuthHero";
+import { DemoAuthNotice } from "@/components/auth/DemoAuthNotice";
+import { RoleSelector } from "@/components/auth/RoleSelector";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LOGIN_FORM, LOGIN_VISUAL } from "@/constants/auth";
+import {
+  LOGIN_DEMO_HELPER,
+  LOGIN_ERRORS,
+  LOGIN_FORM,
+  LOGIN_ROLE_LABEL,
+  LOGIN_ROLE_OPTIONS,
+  LOGIN_VISUAL,
+} from "@/constants/auth";
 import { fadeUpItem } from "@/lib/motion";
+import {
+  DEMO_ACCOUNTS,
+  getDashboardPath,
+  isValidDemoLogin,
+  type DemoRole,
+} from "@/lib/demo-auth";
 
 function GoogleIcon(props: ComponentProps<"svg">) {
   return (
@@ -43,9 +60,70 @@ function GitHubIcon(props: ComponentProps<"svg">) {
   );
 }
 
+type LoginErrorKind = "role" | "credentials" | null;
+
+const ERROR_MESSAGE_ID = "login-error-message";
+
 export function LoginCard() {
   const prefersReducedMotion = useReducedMotion();
   const variants = fadeUpItem(prefersReducedMotion, { duration: 0.5 });
+  const router = useRouter();
+
+  const [role, setRole] = useState<DemoRole | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorKind, setErrorKind] = useState<LoginErrorKind>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (errorKind) {
+      errorRef.current?.focus();
+    }
+  }, [errorKind]);
+
+  const errorMessage =
+    errorKind === "role"
+      ? LOGIN_ERRORS.roleRequired
+      : errorKind === "credentials"
+        ? LOGIN_ERRORS.invalidCredentials
+        : null;
+
+  function handleRoleChange(nextRole: DemoRole) {
+    setRole(nextRole);
+    setErrorKind(null);
+  }
+
+  function handleDemoFill() {
+    if (!role) {
+      setErrorKind("role");
+      return;
+    }
+    const account = DEMO_ACCOUNTS[role];
+    setEmail(account.email);
+    setPassword(account.password);
+    setErrorKind(null);
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!role) {
+      setErrorKind("role");
+      return;
+    }
+
+    if (!isValidDemoLogin(role, email, password)) {
+      setErrorKind("credentials");
+      return;
+    }
+
+    setErrorKind(null);
+    setIsLoading(true);
+    window.setTimeout(() => {
+      router.push(getDashboardPath(role));
+    }, 700);
+  }
 
   return (
     <AuthHero
@@ -68,10 +146,53 @@ export function LoginCard() {
             {LOGIN_FORM.description}
           </p>
 
-          <form
-            className="mt-6 space-y-5"
-            onSubmit={(event) => event.preventDefault()}
-          >
+          <div className="mt-5">
+            <DemoAuthNotice />
+          </div>
+
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+            <div className="flex flex-col gap-2.5">
+              <span className="text-sm leading-none font-medium text-white/90">
+                {LOGIN_ROLE_LABEL}
+                <span className="text-destructive">*</span>
+              </span>
+              <RoleSelector
+                value={role}
+                onChange={handleRoleChange}
+                invalid={errorKind === "role"}
+                errorId={ERROR_MESSAGE_ID}
+              />
+            </div>
+
+            <div className="rounded-xl border border-white/15 bg-white/5 p-4 text-xs text-white/70">
+              <p className="font-semibold text-white/90">
+                {LOGIN_DEMO_HELPER.title}
+              </p>
+              <div className="mt-2.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="min-w-0">
+                  <p className="font-medium text-white/80">
+                    {LOGIN_ROLE_OPTIONS.engineer.title}
+                  </p>
+                  <p className="mt-0.5 truncate">{DEMO_ACCOUNTS.engineer.email}</p>
+                  <p>Password: {DEMO_ACCOUNTS.engineer.password}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-white/80">
+                    {LOGIN_ROLE_OPTIONS.company.title}
+                  </p>
+                  <p className="mt-0.5 truncate">{DEMO_ACCOUNTS.company.email}</p>
+                  <p>Password: {DEMO_ACCOUNTS.company.password}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleDemoFill}
+                className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-white/30 bg-white/10 px-3.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none"
+              >
+                {LOGIN_DEMO_HELPER.fillButtonLabel}
+              </button>
+            </div>
+
             <div className="flex flex-col gap-2">
               <Label htmlFor="email" className="text-white/90">
                 {LOGIN_FORM.email.label}
@@ -83,6 +204,12 @@ export function LoginCard() {
                 type="email"
                 required
                 autoComplete="email"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setErrorKind(null);
+                }}
+                aria-invalid={errorKind === "credentials"}
                 placeholder={LOGIN_FORM.email.placeholder}
                 className="h-12 rounded-xl border-white/20 bg-white/10 text-sm text-white placeholder:text-white/40 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/30 focus-visible:border-cyan-300 focus-visible:ring-2 focus-visible:ring-cyan-300/30"
               />
@@ -94,6 +221,12 @@ export function LoginCard() {
               placeholder={LOGIN_FORM.password.placeholder}
               required
               autoComplete="current-password"
+              value={password}
+              onChange={(value) => {
+                setPassword(value);
+                setErrorKind(null);
+              }}
+              invalid={errorKind === "credentials"}
             />
 
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -115,11 +248,35 @@ export function LoginCard() {
               </Link>
             </div>
 
+            <div
+              ref={errorRef}
+              tabIndex={-1}
+              role="alert"
+              aria-live="assertive"
+              id={ERROR_MESSAGE_ID}
+              className={
+                errorMessage
+                  ? "rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 focus:outline-none"
+                  : "sr-only"
+              }
+            >
+              {errorMessage}
+            </div>
+
             <Button
               type="submit"
-              className="h-12 w-full rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#2563EB] text-sm font-semibold text-white shadow-lg shadow-indigo-950/20 hover:brightness-110"
+              disabled={isLoading}
+              aria-busy={isLoading}
+              className="h-12 w-full rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#2563EB] text-sm font-semibold text-white shadow-lg shadow-indigo-950/20 hover:brightness-110 disabled:opacity-70"
             >
-              {LOGIN_FORM.submitLabel}
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  {LOGIN_FORM.loadingLabel}
+                </>
+              ) : (
+                LOGIN_FORM.submitLabel
+              )}
             </Button>
           </form>
 

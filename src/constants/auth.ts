@@ -20,12 +20,44 @@ export const LOGIN_FORM = {
   rememberMe: "ログイン状態を保持する",
   forgotPassword: "パスワードをお忘れですか？",
   submitLabel: "ログイン",
+  loadingLabel: "ログイン中…",
   dividerLabel: "または",
   google: "Googleでログイン",
   github: "GitHubでログイン",
   noAccount: "アカウントをお持ちでない方",
   registerCta: "無料登録",
   registerHref: "/signup",
+} as const;
+
+export const LOGIN_ROLE_LABEL = "ログインするアカウント種別";
+
+export const LOGIN_ROLE_OPTIONS = {
+  engineer: {
+    value: "engineer",
+    title: "エンジニア",
+    description: "求人・案件を探す",
+  },
+  company: {
+    value: "company",
+    title: "企業",
+    description: "求人・案件を掲載する",
+  },
+} as const;
+
+export const LOGIN_ERRORS = {
+  roleRequired: "ログインするアカウント種別を選択してください。",
+  invalidCredentials:
+    "デモ用のメールアドレスまたはパスワードが正しくありません。",
+} as const;
+
+export const LOGIN_DEMO_HELPER = {
+  title: "デモアカウント",
+  fillButtonLabel: "デモ情報を入力",
+} as const;
+
+export const DEMO_AUTH_NOTICE = {
+  line1: "※ 現在はUIデモ版です。",
+  line2: "実際の認証・データ保存は行われません。",
 } as const;
 
 export const REGISTER_VISUAL = {
@@ -76,4 +108,11 @@ export const REGISTER_FORM = {
   hasAccount: "すでにアカウントをお持ちの方",
   loginCta: "ログイン",
   loginHref: "/login",
+} as const;
+
+export const REGISTER_COMPLETION = {
+  title: "登録デモが完了しました。",
+  note: "※ UIデモのため、入力内容は保存されていません。",
+  loginCta: "ログイン画面へ",
+  dashboardCta: "ダッシュボードを見る",
 } as const;

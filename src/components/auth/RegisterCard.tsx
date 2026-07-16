@@ -1,18 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion, type Variants } from "motion/react";
-import { Building2, UserRound } from "lucide-react";
+import { Building2, CheckCircle2, UserRound } from "lucide-react";
 import { AuthHero } from "@/components/auth/AuthHero";
+import { DemoAuthNotice } from "@/components/auth/DemoAuthNotice";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { REGISTER_FORM, REGISTER_VISUAL } from "@/constants/auth";
+import { REGISTER_COMPLETION, REGISTER_FORM, REGISTER_VISUAL } from "@/constants/auth";
 import { fadeUpItem } from "@/lib/motion";
+import { getDashboardPath } from "@/lib/demo-auth";
 
 export type AccountType = "engineer" | "company";
 
@@ -58,8 +60,21 @@ export function RegisterCard({ initialAccountType }: RegisterCardProps) {
     setAccountType(null);
     setSelectorResetKey((key) => key + 1);
   };
+  const [submittedRole, setSubmittedRole] = useState<AccountType | null>(null);
+  const completionHeadingRef = useRef<HTMLHeadingElement>(null);
   const prefersReducedMotion = useReducedMotion();
   const entrance = fadeUpItem(prefersReducedMotion, { duration: 0.5 });
+
+  useEffect(() => {
+    if (submittedRole) {
+      completionHeadingRef.current?.focus();
+    }
+  }, [submittedRole]);
+
+  function handleRegisterSubmit(event: FormEvent<HTMLFormElement>, role: AccountType) {
+    event.preventDefault();
+    setSubmittedRole(role);
+  }
 
   const stepVariants: Variants = useMemo(
     () => ({
@@ -91,8 +106,51 @@ export function RegisterCard({ initialAccountType }: RegisterCardProps) {
           <p className="mt-1.5 text-sm text-white/70">
             {REGISTER_FORM.description}
           </p>
+
+          <div className="mt-5">
+            <DemoAuthNotice />
+          </div>
+
           <div>
-            {accountType === null ? (
+            {submittedRole ? (
+              <motion.div
+                key="completion"
+                initial="hidden"
+                animate="visible"
+                variants={stepVariants}
+                className="mt-6 flex flex-col items-start gap-4"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-400/15">
+                  <CheckCircle2
+                    className="h-6 w-6 text-cyan-300"
+                    aria-hidden="true"
+                  />
+                </div>
+                <h2
+                  ref={completionHeadingRef}
+                  tabIndex={-1}
+                  aria-live="polite"
+                  className="text-lg font-semibold text-white focus:outline-none"
+                >
+                  {REGISTER_COMPLETION.title}
+                </h2>
+                <p className="text-sm text-white/70">{REGISTER_COMPLETION.note}</p>
+                <div className="mt-2 flex w-full flex-col gap-3 sm:flex-row">
+                  <Link
+                    href={REGISTER_FORM.loginHref}
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-white/30 bg-white/10 text-sm font-semibold text-white transition-colors duration-200 hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none"
+                  >
+                    {REGISTER_COMPLETION.loginCta}
+                  </Link>
+                  <Link
+                    href={getDashboardPath(submittedRole)}
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#2563EB] text-sm font-semibold text-white shadow-lg shadow-indigo-950/20 transition-[filter] duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none"
+                  >
+                    {REGISTER_COMPLETION.dashboardCta}
+                  </Link>
+                </div>
+              </motion.div>
+            ) : accountType === null ? (
               <motion.div
                 key={`select-${selectorResetKey}`}
                 initial="hidden"
@@ -142,7 +200,7 @@ export function RegisterCard({ initialAccountType }: RegisterCardProps) {
                 animate="visible"
                 variants={stepVariants}
                 className="mt-6 space-y-5"
-                onSubmit={(event) => event.preventDefault()}
+                onSubmit={(event) => handleRegisterSubmit(event, "engineer")}
               >
                 <button
                   type="button"
@@ -215,7 +273,7 @@ export function RegisterCard({ initialAccountType }: RegisterCardProps) {
                 animate="visible"
                 variants={stepVariants}
                 className="mt-6 space-y-5"
-                onSubmit={(event) => event.preventDefault()}
+                onSubmit={(event) => handleRegisterSubmit(event, "company")}
               >
                 <button
                   type="button"

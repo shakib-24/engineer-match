@@ -239,6 +239,28 @@ export const LANGUAGE_LEVEL_OPTIONS = [
   "ビジネスレベル",
   "日常会話レベル",
   "基礎レベル",
+  "学習中",
+] as const;
+
+export const LANGUAGE_OPTIONS = [
+  "日本語",
+  "英語",
+  "中国語（簡体）",
+  "中国語（繁体）",
+  "韓国語",
+  "ベンガル語",
+  "ヒンディー語",
+  "ベトナム語",
+  "タイ語",
+  "インドネシア語",
+  "スペイン語",
+  "フランス語",
+  "ドイツ語",
+  "イタリア語",
+  "ポルトガル語",
+  "ロシア語",
+  "アラビア語",
+  "その他",
 ] as const;
 
 // ============================================================
@@ -430,8 +452,11 @@ export const PORTFOLIO_FORM_FIELDS = {
   period: "期間",
 } as const;
 
-export const LANGUAGE_FORM_FIELDS = {
-  level: "レベル",
+export const LANGUAGE_ROW_LABELS = {
+  languageLabel: "言語",
+  levelLabel: "レベル",
+  addLabel: "＋ 言語を追加",
+  removeLabel: "この言語を削除",
 } as const;
 
 export const REMOTE_PREFERENCE_OPTIONS = [

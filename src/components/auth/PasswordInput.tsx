@@ -11,6 +11,9 @@ interface PasswordInputProps {
   autoComplete?: string;
   required?: boolean;
   id?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  invalid?: boolean;
 }
 
 export function PasswordInput({
@@ -19,6 +22,9 @@ export function PasswordInput({
   autoComplete = "current-password",
   required = false,
   id,
+  value,
+  onChange,
+  invalid = false,
 }: PasswordInputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
@@ -38,6 +44,9 @@ export function PasswordInput({
           placeholder={placeholder}
           autoComplete={autoComplete}
           required={required}
+          value={value}
+          onChange={onChange ? (event) => onChange(event.target.value) : undefined}
+          aria-invalid={invalid}
           className="h-12 rounded-xl border-white/20 bg-white/10 pr-11 text-sm text-white placeholder:text-white/40 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/30 focus-visible:border-cyan-300 focus-visible:ring-2 focus-visible:ring-cyan-300/30"
         />
         <button

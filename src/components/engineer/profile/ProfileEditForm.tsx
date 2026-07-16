@@ -41,8 +41,9 @@ import {
   HUMAN_SKILL_OPTIONS,
   ITSS_LEVEL_OPTIONS,
   LANGUAGES,
-  LANGUAGE_FORM_FIELDS,
   LANGUAGE_LEVEL_OPTIONS,
+  LANGUAGE_OPTIONS,
+  LANGUAGE_ROW_LABELS,
   PORTFOLIO_FORM_FIELDS,
   PORTFOLIO_PROJECTS,
   PREFERRED_CONDITIONS,
@@ -129,6 +130,7 @@ interface PortfolioRow {
 }
 
 interface LanguageRow {
+  id: string;
   name: string;
   level: string;
 }
@@ -190,6 +192,35 @@ function useRatedSkillRows(initialRows: RatedSkillRow[], idPrefix: string, defau
   }
 
   function update(id: string, patch: Partial<RatedSkillRow>) {
+    setRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+    );
+  }
+
+  return { rows, add, remove, update };
+}
+
+function useLanguageRows(initialRows: LanguageRow[]) {
+  const [rows, setRows] = useState<LanguageRow[]>(initialRows);
+  const counter = useRef(0);
+
+  function add() {
+    counter.current += 1;
+    setRows((prev) => [
+      ...prev,
+      {
+        id: `lang-new-${counter.current}`,
+        name: LANGUAGE_OPTIONS[0],
+        level: LANGUAGE_LEVEL_OPTIONS[0],
+      },
+    ]);
+  }
+
+  function remove(id: string) {
+    setRows((prev) => prev.filter((row) => row.id !== id));
+  }
+
+  function update(id: string, patch: Partial<LanguageRow>) {
     setRows((prev) =>
       prev.map((row) => (row.id === id ? { ...row, ...patch } : row)),
     );
@@ -480,14 +511,13 @@ export function ProfileEditForm() {
     );
   }
 
-  const [languages, setLanguages] = useState<LanguageRow[]>(() =>
-    LANGUAGES.map((lang) => ({ ...lang })),
+  const languages = useLanguageRows(
+    LANGUAGES.map((lang, index) => ({
+      id: `lang-${index}`,
+      name: lang.name,
+      level: lang.level,
+    })),
   );
-  function updateLanguage(index: number, level: string) {
-    setLanguages((prev) =>
-      prev.map((row, i) => (i === index ? { ...row, level } : row)),
-    );
-  }
 
   const [preferredConditions, setPreferredConditions] =
     useState<PreferredConditionsState>(() => ({
@@ -1102,29 +1132,40 @@ export function ProfileEditForm() {
 
       <ProfileSection title={PROFILE_EDIT_SECTIONS.languages} icon={LanguagesIcon}>
         <div className="flex flex-col gap-3">
-          {languages.map((row, index) => (
+          {languages.rows.map((row) => (
             <div
-              key={row.name}
+              key={row.id}
               className="flex flex-wrap items-end gap-3 rounded-xl border border-border p-3"
             >
-              <div className="flex min-w-32 flex-1 flex-col gap-1.5">
-                <Label htmlFor={`lang-name-${index}`}>{row.name}</Label>
-                <Input
-                  id={`lang-name-${index}`}
-                  type="text"
-                  value={row.name}
-                  disabled
-                  className="h-9"
-                />
-              </div>
-              <div className="flex w-48 flex-col gap-1.5">
-                <Label htmlFor={`lang-level-${index}`}>
-                  {LANGUAGE_FORM_FIELDS.level}
+              <div className="flex min-w-40 flex-1 flex-col gap-1.5">
+                <Label htmlFor={`${row.id}-name`}>
+                  {LANGUAGE_ROW_LABELS.languageLabel}
                 </Label>
                 <select
-                  id={`lang-level-${index}`}
+                  id={`${row.id}-name`}
+                  value={row.name}
+                  onChange={(event) =>
+                    languages.update(row.id, { name: event.target.value })
+                  }
+                  className={SELECT_CLASS.replace("h-8", "h-9")}
+                >
+                  {LANGUAGE_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex w-48 flex-col gap-1.5">
+                <Label htmlFor={`${row.id}-level`}>
+                  {LANGUAGE_ROW_LABELS.levelLabel}
+                </Label>
+                <select
+                  id={`${row.id}-level`}
                   value={row.level}
-                  onChange={(event) => updateLanguage(index, event.target.value)}
+                  onChange={(event) =>
+                    languages.update(row.id, { level: event.target.value })
+                  }
                   className={SELECT_CLASS.replace("h-8", "h-9")}
                 >
                   {LANGUAGE_LEVEL_OPTIONS.map((level) => (
@@ -1134,8 +1175,23 @@ export function ProfileEditForm() {
                   ))}
                 </select>
               </div>
+              <button
+                type="button"
+                onClick={() => languages.remove(row.id)}
+                aria-label={`${LANGUAGE_ROW_LABELS.removeLabel}：${row.name}`}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+              </button>
             </div>
           ))}
+          <button
+            type="button"
+            onClick={languages.add}
+            className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-primary transition-colors duration-200 hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            {LANGUAGE_ROW_LABELS.addLabel}
+          </button>
         </div>
       </ProfileSection>
 
