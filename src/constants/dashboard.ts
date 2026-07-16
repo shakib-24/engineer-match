@@ -10,8 +10,8 @@ export const ENGINEER_NAV = [
   { href: "/engineer/profile", label: "プロフィール", icon: "userRound" },
   { href: "/engineer/jobs", label: "求人・案件を探す", icon: "search" },
   { href: "/engineer/applications", label: "応募管理", icon: "clipboardList" },
-  { href: "/engineer/messages", label: "メッセージ", icon: "messageSquare" },
-  { href: "/engineer/notifications", label: "通知", icon: "bell" },
+  { href: "/messages", label: "メッセージ", icon: "messageSquare" },
+  { href: "/notifications", label: "通知", icon: "bell" },
   { href: "/engineer/favorites", label: "お気に入り", icon: "heart" },
   { href: "/engineer/settings", label: "設定", icon: "settings" },
 ] as const;
@@ -128,7 +128,7 @@ export const ENGINEER_RECENT_APPLICATIONS = {
 export const ENGINEER_RECENT_MESSAGES = {
   title: "最近のメッセージ",
   viewAllLabel: "メッセージ一覧を見る",
-  viewAllHref: "/engineer/messages",
+  viewAllHref: "/messages",
   items: [
     {
       sender: "株式会社テックイノベーション",
