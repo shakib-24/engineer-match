@@ -19,8 +19,8 @@ export const ENGINEER_NAV = [
 export const COMPANY_NAV = [
   { href: "/company/dashboard", label: "ダッシュボード", icon: "layoutDashboard" },
   { href: "/company/profile", label: "企業プロフィール", icon: "building2" },
-  { href: "/company/opportunities", label: "求人・案件管理", icon: "briefcase" },
-  { href: "/company/opportunities/new", label: "新規掲載", icon: "filePlus2" },
+  { href: "/company/jobs", label: "求人・案件管理", icon: "briefcase" },
+  { href: "/company/jobs/new", label: "新規掲載", icon: "filePlus2" },
   { href: "/company/applicants", label: "応募者管理", icon: "users" },
   { href: "/company/search", label: "エンジニア検索", icon: "search" },
   { href: "/company/messages", label: "メッセージ", icon: "messageSquare" },
@@ -181,7 +181,7 @@ export const COMPANY_ACTIVE_OPPORTUNITIES = {
   title: "掲載中の求人・案件",
   description: "現在募集中の求人・案件と応募状況です。",
   viewAllLabel: "求人・案件管理へ",
-  viewAllHref: "/company/opportunities",
+  viewAllHref: "/company/jobs",
   items: [
     {
       title: "バックエンドエンジニア（Java / Spring Boot）",
@@ -275,7 +275,7 @@ export const COMPANY_RECENT_MESSAGES = {
 export const COMPANY_QUICK_ACTIONS = {
   title: "クイックアクション",
   items: [
-    { label: "新規求人・案件を掲載", href: "/company/opportunities/new", icon: "filePlus2" },
+    { label: "新規求人・案件を掲載", href: "/company/jobs/new", icon: "filePlus2" },
     { label: "応募者を確認する", href: "/company/applicants", icon: "users" },
     { label: "エンジニアを検索する", href: "/company/search", icon: "search" },
   ],
