@@ -74,6 +74,7 @@ export const CONTACT_PAGE = {
       "サービスに関するご質問・ご相談は、以下のフォームよりお気軽にお問い合わせください。",
   },
   formNote: "※ 現在このフォームはデモ表示のため、送信機能は実装されていません。",
+  submittedMessage: "送信内容を受け付けました（デモ表示のため実際には送信されません）。",
   form: {
     companyName: {
       label: "会社名",

@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  AUTH_DEMO_ACTION_NOTICE,
   LOGIN_DEMO_HELPER,
   LOGIN_ERRORS,
   LOGIN_FORM,
@@ -74,7 +75,13 @@ export function LoginCard() {
   const [password, setPassword] = useState("");
   const [errorKind, setErrorKind] = useState<LoginErrorKind>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement>(null);
+
+  function showDemoToast() {
+    setToastMessage(AUTH_DEMO_ACTION_NOTICE);
+    window.setTimeout(() => setToastMessage(null), 3000);
+  }
 
   useEffect(() => {
     if (errorKind) {
@@ -247,12 +254,13 @@ export function LoginCard() {
                   {LOGIN_FORM.rememberMe}
                 </Label>
               </div>
-              <Link
-                href="#"
+              <button
+                type="button"
+                onClick={showDemoToast}
                 className="rounded text-sm font-medium text-cyan-300 transition-colors duration-200 hover:text-cyan-200 focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 {LOGIN_FORM.forgotPassword}
-              </Link>
+              </button>
             </div>
 
             <div
@@ -298,6 +306,7 @@ export function LoginCard() {
           <div className="flex flex-col gap-3">
             <Button
               type="button"
+              onClick={showDemoToast}
               className="h-12 w-full rounded-xl border border-white/40 bg-white/90 text-sm font-semibold text-[#111827] hover:bg-white"
             >
               <GoogleIcon className="h-4 w-4" />
@@ -305,6 +314,7 @@ export function LoginCard() {
             </Button>
             <Button
               type="button"
+              onClick={showDemoToast}
               className="h-12 w-full rounded-xl border border-white/40 bg-white/90 text-sm font-semibold text-[#111827] hover:bg-white"
             >
               <GitHubIcon className="h-4 w-4" />
@@ -323,6 +333,18 @@ export function LoginCard() {
           </Link>
         </p>
       </motion.div>
+
+      {toastMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 sm:justify-end sm:pr-6"
+        >
+          <div className="flex items-center gap-2 rounded-xl bg-foreground px-4 py-3 text-sm font-medium text-white shadow-lg">
+            {toastMessage}
+          </div>
+        </div>
+      )}
     </AuthHero>
   );
 }

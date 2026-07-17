@@ -282,6 +282,7 @@ export function EngineerList({ engineers }: EngineerListProps) {
               <button
                 key={page}
                 type="button"
+                aria-disabled={page !== 1 ? "true" : undefined}
                 aria-current={page === 1 ? "page" : undefined}
                 aria-label={`ページ ${page}`}
                 className={`inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none ${
@@ -295,6 +296,7 @@ export function EngineerList({ engineers }: EngineerListProps) {
             ))}
             <button
               type="button"
+              aria-disabled="true"
               className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               次へ

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { Eye, MapPin, Pencil } from "lucide-react";
 import { PROFILE_HEADER } from "@/constants/engineer-profile";
@@ -14,6 +17,7 @@ export function ProfileHeader() {
     editHref,
     previewLabel,
   } = PROFILE_HEADER;
+  const [demoMessage, setDemoMessage] = useState<string | null>(null);
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-8">
@@ -51,6 +55,9 @@ export function ProfileHeader() {
         <div className="flex shrink-0 flex-wrap gap-2">
           <button
             type="button"
+            onClick={() =>
+              setDemoMessage("この機能はデモ版のため準備中です（公開プレビューは今後実装予定）。")
+            }
             className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             <Eye className="h-4 w-4" aria-hidden="true" />
@@ -65,6 +72,15 @@ export function ProfileHeader() {
           </Link>
         </div>
       </div>
+
+      {demoMessage && (
+        <p
+          role="status"
+          className="mt-4 rounded-xl bg-muted px-4 py-2.5 text-xs text-muted-foreground"
+        >
+          {demoMessage}
+        </p>
+      )}
     </div>
   );
 }

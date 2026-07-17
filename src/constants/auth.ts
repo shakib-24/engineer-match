@@ -65,6 +65,9 @@ export const DEMO_AUTH_NOTICE = {
   line2: "実際の認証・データ保存は行われません。",
 } as const;
 
+export const AUTH_DEMO_ACTION_NOTICE =
+  "※ UIデモのため、この機能はご利用いただけません。";
+
 export const REGISTER_VISUAL = {
   imageSrc: "/image/ChatGPT Image Jul 13, 2026, 04_43_45 PM developer .png",
   imageAlt: "デスクでコードと向き合うエンジニアの様子",

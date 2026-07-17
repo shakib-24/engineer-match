@@ -20,16 +20,28 @@ export function Footer() {
                 {column.title}
               </h3>
               <ul className="mt-4 space-y-3">
-                {column.links.map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
+                {column.links.map((link) =>
+                  link.href === "#" ? (
+                    <li key={link.label}>
+                      <span
+                        aria-disabled="true"
+                        className="text-sm text-muted-foreground/50"
+                      >
+                        {link.label}
+                        <span className="ml-1.5 text-xs">（準備中）</span>
+                      </span>
+                    </li>
+                  ) : (
+                    <li key={link.label}>
+                      <a
+                        href={link.href}
+                        className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ),
+                )}
               </ul>
             </div>
           ))}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import {
@@ -67,24 +68,24 @@ export function FeaturedOpportunities() {
               </div>
 
               <div className="mt-auto pt-6">
-                <button
-                  type="button"
+                <Link
+                  href="/engineer/jobs"
                   className="w-fit rounded-lg text-sm font-semibold text-primary transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
                   {OPPORTUNITY_CTA_LABEL}
-                </button>
+                </Link>
               </div>
             </div>
           ))}
         </FadeIn>
 
         <div className="mt-12 flex justify-center">
-          <button
-            type="button"
+          <Link
+            href="/engineer/jobs"
             className="inline-flex h-12 items-center justify-center rounded-xl border border-border px-6 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             {FEATURED_OPPORTUNITIES.viewAllCta}
-          </button>
+          </Link>
         </div>
       </div>
     </section>
