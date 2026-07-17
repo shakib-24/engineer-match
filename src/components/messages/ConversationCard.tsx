@@ -8,14 +8,19 @@ import {
 interface ConversationCardProps {
   conversation: Conversation;
   isActive: boolean;
+  basePath?: string;
 }
 
-export function ConversationCard({ conversation, isActive }: ConversationCardProps) {
+export function ConversationCard({
+  conversation,
+  isActive,
+  basePath = "/messages",
+}: ConversationCardProps) {
   const hasUnread = conversation.unreadCount > 0;
 
   return (
     <Link
-      href={`/messages/${conversation.id}`}
+      href={`${basePath}/${conversation.id}`}
       aria-current={isActive ? "page" : undefined}
       className={`flex items-start gap-3 rounded-xl border px-3 py-3 transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none ${
         isActive

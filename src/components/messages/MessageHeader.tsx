@@ -8,13 +8,14 @@ import {
 
 interface MessageHeaderProps {
   conversation: Conversation;
+  basePath?: string;
 }
 
-export function MessageHeader({ conversation }: MessageHeaderProps) {
+export function MessageHeader({ conversation, basePath = "/messages" }: MessageHeaderProps) {
   return (
     <div className="flex shrink-0 items-center gap-3 border-b border-border bg-surface px-4 py-3 sm:px-6">
       <Link
-        href="/messages"
+        href={basePath}
         aria-label={MESSAGE_HEADER_LABELS.backLabel}
         className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none lg:hidden"
       >

@@ -22,7 +22,7 @@ export const COMPANY_NAV = [
   { href: "/company/jobs", label: "求人・案件管理", icon: "briefcase" },
   { href: "/company/jobs/new", label: "新規掲載", icon: "filePlus2" },
   { href: "/company/applicants", label: "応募者管理", icon: "users" },
-  { href: "/company/search", label: "エンジニア検索", icon: "search" },
+  { href: "/company/engineers", label: "エンジニア検索", icon: "search" },
   { href: "/company/messages", label: "メッセージ", icon: "messageSquare" },
   { href: "/company/notifications", label: "通知", icon: "bell" },
   { href: "/company/settings", label: "設定", icon: "settings" },
@@ -238,7 +238,7 @@ export const COMPANY_CANDIDATE_RECOMMENDATIONS = {
   title: "おすすめのエンジニア",
   description: "募集条件に合った候補者をご紹介します。",
   viewAllLabel: "エンジニアを検索",
-  viewAllHref: "/company/search",
+  viewAllHref: "/company/engineers",
   items: [
     { name: "田中 慎一", itssLevel: 4, skills: ["Java", "Spring Boot", "AWS"], location: "東京都" },
     { name: "伊藤 まどか", itssLevel: 3, skills: ["React", "TypeScript", "Next.js"], location: "フルリモート" },
@@ -277,6 +277,6 @@ export const COMPANY_QUICK_ACTIONS = {
   items: [
     { label: "新規求人・案件を掲載", href: "/company/jobs/new", icon: "filePlus2" },
     { label: "応募者を確認する", href: "/company/applicants", icon: "users" },
-    { label: "エンジニアを検索する", href: "/company/search", icon: "search" },
+    { label: "エンジニアを検索する", href: "/company/engineers", icon: "search" },
   ],
 } as const;

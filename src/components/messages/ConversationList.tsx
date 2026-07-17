@@ -9,9 +9,14 @@ import { CONVERSATION_LIST_META, type Conversation } from "@/constants/messages"
 interface ConversationListProps {
   conversations: Conversation[];
   activeId?: string;
+  basePath?: string;
 }
 
-export function ConversationList({ conversations, activeId }: ConversationListProps) {
+export function ConversationList({
+  conversations,
+  activeId,
+  basePath,
+}: ConversationListProps) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -55,6 +60,7 @@ export function ConversationList({ conversations, activeId }: ConversationListPr
                 <ConversationCard
                   conversation={conversation}
                   isActive={conversation.id === activeId}
+                  basePath={basePath}
                 />
               </li>
             ))}

@@ -15,6 +15,12 @@ export const MESSAGES_PAGE = {
   description: "企業とのやり取りを確認できます。",
 } as const;
 
+/** Company-side viewer perspective (same shared conversation data). */
+export const MESSAGES_PAGE_COMPANY = {
+  title: "メッセージ",
+  description: "エンジニアとのやり取りを確認できます。",
+} as const;
+
 export const CONVERSATION_SEARCH_LABELS = {
   label: "会話を検索",
   placeholder: "会話を検索",

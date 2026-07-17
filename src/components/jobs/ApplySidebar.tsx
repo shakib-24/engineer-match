@@ -7,6 +7,11 @@ import {
   CONTRACT_TYPE_BADGE_STYLES,
   type Job,
 } from "@/constants/jobs";
+import {
+  markFavoriteJobApplied,
+  toggleFavoriteJob,
+  useIsFavoriteJob,
+} from "@/lib/favorite-jobs-store";
 
 interface ApplySidebarProps {
   job: Job;
@@ -14,8 +19,13 @@ interface ApplySidebarProps {
 
 export function ApplySidebar({ job }: ApplySidebarProps) {
   const [hasApplied, setHasApplied] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const isBookmarked = useIsFavoriteJob(job.id);
   const [hasShared, setHasShared] = useState(false);
+
+  function handleApply() {
+    setHasApplied(true);
+    markFavoriteJobApplied(job.id);
+  }
 
   function handleShare() {
     setHasShared(true);
@@ -45,7 +55,7 @@ export function ApplySidebar({ job }: ApplySidebarProps) {
       ) : (
         <button
           type="button"
-          onClick={() => setHasApplied(true)}
+          onClick={handleApply}
           className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           {APPLY_SIDEBAR_LABELS.applyLabel}
@@ -55,7 +65,7 @@ export function ApplySidebar({ job }: ApplySidebarProps) {
       <div className="mt-3 flex gap-2">
         <button
           type="button"
-          onClick={() => setIsBookmarked((prev) => !prev)}
+          onClick={() => toggleFavoriteJob(job.id)}
           aria-pressed={isBookmarked}
           className={`inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border text-sm font-semibold transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none ${
             isBookmarked

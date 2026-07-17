@@ -9,6 +9,7 @@ import { MOCK_AUTO_REPLIES, type Conversation, type Message } from "@/constants/
 
 interface MessageThreadProps {
   conversation: Conversation;
+  basePath?: string;
 }
 
 function groupByDate(messages: Message[]): { dateLabel: string; items: Message[] }[] {
@@ -29,7 +30,7 @@ function nowTimeLabel(): string {
   return `${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}`;
 }
 
-export function MessageThread({ conversation }: MessageThreadProps) {
+export function MessageThread({ conversation, basePath }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>(conversation.messages);
   const [isTyping, setIsTyping] = useState(false);
   const [loadedConversationId, setLoadedConversationId] = useState(conversation.id);
@@ -82,7 +83,7 @@ export function MessageThread({ conversation }: MessageThreadProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-      <MessageHeader conversation={conversation} />
+      <MessageHeader conversation={conversation} basePath={basePath} />
 
       <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         <div className="flex flex-col gap-4">

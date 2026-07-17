@@ -11,7 +11,6 @@ import { JobCard } from "@/components/jobs/JobCard";
 import { EmptyState } from "@/components/jobs/EmptyState";
 import { Pagination } from "@/components/jobs/Pagination";
 import {
-  DEFAULT_BOOKMARKED_JOB_IDS,
   DEFAULT_FILTER_STATE,
   JOB_LIST_META,
   JOB_SIDEBAR_LABELS,
@@ -20,6 +19,7 @@ import {
   type FilterState,
   type Job,
 } from "@/constants/jobs";
+import { toggleFavoriteJob, useFavoriteJobs } from "@/lib/favorite-jobs-store";
 
 interface JobListProps {
   jobs: Job[];
@@ -29,9 +29,7 @@ export function JobList({ jobs }: JobListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTER_STATE);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(
-    () => new Set(DEFAULT_BOOKMARKED_JOB_IDS),
-  );
+  const favorites = useFavoriteJobs();
 
   function handleFilterChange(patch: Partial<FilterState>) {
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -43,15 +41,7 @@ export function JobList({ jobs }: JobListProps) {
   }
 
   function handleToggleBookmark(id: string) {
-    setBookmarkedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+    toggleFavoriteJob(id);
   }
 
   const filteredJobs = useMemo(() => {
@@ -116,7 +106,7 @@ export function JobList({ jobs }: JobListProps) {
       ? 1
       : 0);
 
-  const savedJobs = jobs.filter((job) => bookmarkedIds.has(job.id));
+  const savedJobs = jobs.filter((job) => Boolean(favorites[job.id]));
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
@@ -149,7 +139,7 @@ export function JobList({ jobs }: JobListProps) {
               <li key={job.id}>
                 <JobCard
                   job={job}
-                  isBookmarked={bookmarkedIds.has(job.id)}
+                  isBookmarked={Boolean(favorites[job.id])}
                   onToggleBookmark={handleToggleBookmark}
                 />
               </li>
