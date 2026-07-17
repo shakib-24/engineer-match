@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Briefcase,
   Building2,
@@ -33,10 +34,6 @@ export function AdminRecentActivity() {
     <SectionCard
       title={ADMIN_RECENT_ACTIVITY_SECTION.title}
       description={ADMIN_RECENT_ACTIVITY_SECTION.description}
-      action={{
-        label: ADMIN_RECENT_ACTIVITY_SECTION.viewAllLabel,
-        href: ADMIN_RECENT_ACTIVITY_SECTION.viewAllHref,
-      }}
     >
       <ul className="flex max-h-[32rem] flex-col divide-y divide-border overflow-y-auto">
         {ADMIN_RECENT_ACTIVITY.map((item) => {
@@ -56,9 +53,16 @@ export function AdminRecentActivity() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                  <p className="text-sm font-semibold text-foreground">
-                    {item.title}
-                  </p>
+                  {item.relatedHref ? (
+                    <Link
+                      href={item.relatedHref}
+                      className="rounded-sm text-sm font-semibold text-foreground hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+                    >
+                      {item.title}
+                    </Link>
+                  ) : (
+                    <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                  )}
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {item.dateLabel}
                   </span>

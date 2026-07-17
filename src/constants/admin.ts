@@ -37,12 +37,12 @@ export const ADMIN_NAV = [
   { href: "/admin", label: "ダッシュボード", icon: "layoutDashboard" },
   { href: "/admin/users", label: "ユーザー管理", icon: "users" },
   { href: "/admin/companies", label: "企業管理", icon: "building2" },
-  { href: "/admin/jobs", label: "求人・案件管理", icon: "briefcase" },
+  { href: "/admin/opportunities", label: "求人・案件管理", icon: "briefcase" },
   { href: "/admin/applications", label: "応募管理", icon: "clipboardList" },
-  { href: "/admin/skills", label: "スキルマスタ", icon: "listChecks" },
-  { href: "/admin/certifications", label: "資格マスタ", icon: "award" },
+  { href: "/admin/messages", label: "メッセージ管理", icon: "messageSquare" },
   { href: "/admin/reports", label: "通報管理", icon: "shieldAlert" },
-  { href: "/admin/audit-logs", label: "監査ログ", icon: "history" },
+  { href: "/admin/master-data", label: "マスタ管理", icon: "listChecks" },
+  { href: "/admin/notifications", label: "通知", icon: "bell" },
   { href: "/admin/settings", label: "システム設定", icon: "settings" },
 ] as const;
 
@@ -202,7 +202,7 @@ export const ADMIN_PENDING_APPROVALS: AdminApprovalItem[] = [
     submittedBy: "株式会社テックイノベーション",
     dateLabel: "2026年7月16日",
     status: "審査待ち",
-    detailsHref: "/admin/jobs/j-201",
+    detailsHref: "/admin/opportunities/j-201",
   },
   {
     id: "j-202",
@@ -211,7 +211,7 @@ export const ADMIN_PENDING_APPROVALS: AdminApprovalItem[] = [
     submittedBy: "株式会社ニューラルゲート",
     dateLabel: "2026年7月15日",
     status: "審査待ち",
-    detailsHref: "/admin/jobs/j-202",
+    detailsHref: "/admin/opportunities/j-202",
   },
   {
     id: "j-203",
@@ -220,7 +220,7 @@ export const ADMIN_PENDING_APPROVALS: AdminApprovalItem[] = [
     submittedBy: "株式会社ゼロトラスト",
     dateLabel: "2026年7月13日",
     status: "内容確認中",
-    detailsHref: "/admin/jobs/j-203",
+    detailsHref: "/admin/opportunities/j-203",
   },
   {
     id: "r-301",
@@ -292,8 +292,6 @@ export const ADMIN_ACTIVITY_TYPE_STYLES: Record<AdminActivityType, string> = {
 export const ADMIN_RECENT_ACTIVITY_SECTION = {
   title: "最近のアクティビティ",
   description: "プラットフォーム全体の直近の活動履歴です。",
-  viewAllLabel: "監査ログを見る",
-  viewAllHref: "/admin/audit-logs",
 } as const;
 
 export interface AdminActivityItem {
@@ -304,6 +302,7 @@ export interface AdminActivityItem {
   actor: string;
   dateLabel: string;
   dateISO: string;
+  relatedHref?: string;
 }
 
 export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
@@ -315,6 +314,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "中村 拓也",
     dateLabel: "2026年7月17日 9:12",
     dateISO: "2026-07-17T09:12:00",
+    relatedHref: "/admin/users/u-005",
   },
   {
     id: "act-02",
@@ -333,6 +333,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "エンジニア 田中 慎一",
     dateLabel: "2026年7月17日 8:30",
     dateISO: "2026-07-17T08:30:00",
+    relatedHref: "/admin/reports/r-301",
   },
   {
     id: "act-04",
@@ -351,6 +352,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "株式会社ネクストシステムズ",
     dateLabel: "2026年7月16日 21:40",
     dateISO: "2026-07-16T21:40:00",
+    relatedHref: "/admin/applications/app-003",
   },
   {
     id: "act-06",
@@ -360,6 +362,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "株式会社フォレストテック",
     dateLabel: "2026年7月16日 19:05",
     dateISO: "2026-07-16T19:05:00",
+    relatedHref: "/admin/companies/c-103",
   },
   {
     id: "act-07",
@@ -369,6 +372,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "管理者 佐々木",
     dateLabel: "2026年7月16日 18:20",
     dateISO: "2026-07-16T18:20:00",
+    relatedHref: "/admin/master-data",
   },
   {
     id: "act-08",
@@ -378,6 +382,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "管理者 伊藤",
     dateLabel: "2026年7月16日 17:45",
     dateISO: "2026-07-16T17:45:00",
+    relatedHref: "/admin/companies/c-002",
   },
   {
     id: "act-09",
@@ -387,6 +392,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "渡辺 隆",
     dateLabel: "2026年7月16日 16:30",
     dateISO: "2026-07-16T16:30:00",
+    relatedHref: "/admin/users/u-006",
   },
   {
     id: "act-10",
@@ -414,6 +420,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "エンジニア 鈴木 美咲",
     dateLabel: "2026年7月16日 12:15",
     dateISO: "2026-07-16T12:15:00",
+    relatedHref: "/admin/reports/r-303",
   },
   {
     id: "act-13",
@@ -423,6 +430,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "株式会社ゼロトラスト",
     dateLabel: "2026年7月16日 11:00",
     dateISO: "2026-07-16T11:00:00",
+    relatedHref: "/admin/opportunities/j-203",
   },
   {
     id: "act-14",
@@ -441,6 +449,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "株式会社ゼロトラスト",
     dateLabel: "2026年7月15日 20:40",
     dateISO: "2026-07-15T20:40:00",
+    relatedHref: "/admin/companies/c-003",
   },
   {
     id: "act-16",
@@ -450,6 +459,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "管理者 松本",
     dateLabel: "2026年7月15日 19:15",
     dateISO: "2026-07-15T19:15:00",
+    relatedHref: "/admin/master-data",
   },
   {
     id: "act-17",
@@ -459,6 +469,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "株式会社スケールワークス",
     dateLabel: "2026年7月15日 17:30",
     dateISO: "2026-07-15T17:30:00",
+    relatedHref: "/admin/opportunities/11",
   },
   {
     id: "act-18",
@@ -468,6 +479,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "小林 直樹",
     dateLabel: "2026年7月15日 16:05",
     dateISO: "2026-07-15T16:05:00",
+    relatedHref: "/admin/users/u-008",
   },
   {
     id: "act-19",
@@ -486,6 +498,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "株式会社データポート",
     dateLabel: "2026年7月15日 13:20",
     dateISO: "2026-07-15T13:20:00",
+    relatedHref: "/admin/opportunities/7",
   },
   {
     id: "act-21",
@@ -495,6 +508,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "管理者 伊藤",
     dateLabel: "2026年7月15日 11:40",
     dateISO: "2026-07-15T11:40:00",
+    relatedHref: "/admin/reports/r-305",
   },
   {
     id: "act-22",
@@ -504,6 +518,7 @@ export const ADMIN_RECENT_ACTIVITY: AdminActivityItem[] = [
     actor: "株式会社テックイノベーション",
     dateLabel: "2026年7月15日 10:05",
     dateISO: "2026-07-15T10:05:00",
+    relatedHref: "/admin/opportunities/j-201",
   },
 ];
 
@@ -516,9 +531,9 @@ export const ADMIN_QUICK_ACTIONS = {
   items: [
     { label: "ユーザーを確認", href: "/admin/users", icon: "users" },
     { label: "企業審査を確認", href: "/admin/companies", icon: "building2" },
-    { label: "求人・案件を確認", href: "/admin/jobs", icon: "briefcase" },
-    { label: "スキルマスタを管理", href: "/admin/skills", icon: "listChecks" },
+    { label: "求人・案件を確認", href: "/admin/opportunities", icon: "briefcase" },
     { label: "通報を確認", href: "/admin/reports", icon: "shieldAlert" },
+    { label: "マスタ管理", href: "/admin/master-data", icon: "listChecks" },
   ],
 } as const;
 

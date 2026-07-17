@@ -1,11 +1,11 @@
 import Link from "next/link";
 import {
-  Award,
+  Bell,
   Briefcase,
   ClipboardList,
-  History,
   LayoutDashboard,
   ListChecks,
+  MessageSquare,
   Settings,
   ShieldAlert,
   Building2,
@@ -21,9 +21,9 @@ const ICON_MAP = {
   briefcase: Briefcase,
   clipboardList: ClipboardList,
   listChecks: ListChecks,
-  award: Award,
+  messageSquare: MessageSquare,
   shieldAlert: ShieldAlert,
-  history: History,
+  bell: Bell,
   settings: Settings,
 } as const;
 
