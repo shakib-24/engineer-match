@@ -12,7 +12,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { REGISTER_COMPLETION, REGISTER_FORM, REGISTER_VISUAL } from "@/constants/auth";
+import {
+  REGISTER_COMPLETION,
+  REGISTER_ERRORS,
+  REGISTER_FORM,
+  REGISTER_VISUAL,
+} from "@/constants/auth";
 import { fadeUpItem } from "@/lib/motion";
 import { getDashboardPath } from "@/lib/demo-auth";
 
@@ -49,9 +54,10 @@ function AgreeTerms({ id }: { id: string }) {
 
 interface RegisterCardProps {
   initialAccountType?: AccountType;
+  blockedRole?: "admin";
 }
 
-export function RegisterCard({ initialAccountType }: RegisterCardProps) {
+export function RegisterCard({ initialAccountType, blockedRole }: RegisterCardProps) {
   const [accountType, setAccountType] = useState<AccountType | null>(
     initialAccountType ?? null,
   );
@@ -158,6 +164,15 @@ export function RegisterCard({ initialAccountType }: RegisterCardProps) {
                 variants={stepVariants}
                 className="mt-6"
               >
+                {blockedRole === "admin" && (
+                  <div
+                    role="alert"
+                    aria-live="assertive"
+                    className="mb-4 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+                  >
+                    {REGISTER_ERRORS.adminNotAllowed}
+                  </div>
+                )}
                 <RadioGroup
                   key={selectorResetKey}
                   aria-label={REGISTER_FORM.accountTypeLabel}

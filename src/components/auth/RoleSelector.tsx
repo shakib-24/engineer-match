@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, CircleCheck, UserRound } from "lucide-react";
+import { Building2, CircleCheck, ShieldCheck, UserRound } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { LOGIN_ROLE_LABEL, LOGIN_ROLE_OPTIONS } from "@/constants/auth";
 import type { DemoRole } from "@/lib/demo-auth";
@@ -8,6 +8,7 @@ import type { DemoRole } from "@/lib/demo-auth";
 const ROLE_OPTIONS = [
   { ...LOGIN_ROLE_OPTIONS.engineer, icon: UserRound },
   { ...LOGIN_ROLE_OPTIONS.company, icon: Building2 },
+  { ...LOGIN_ROLE_OPTIONS.admin, icon: ShieldCheck },
 ] as const;
 
 interface RoleSelectorProps {
@@ -30,7 +31,7 @@ export function RoleSelector({
       aria-describedby={invalid ? errorId : undefined}
       value={value}
       onValueChange={(next) => onChange(next as DemoRole)}
-      className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-3"
     >
       {ROLE_OPTIONS.map((option) => {
         const isSelected = value === option.value;

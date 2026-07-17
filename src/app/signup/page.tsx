@@ -14,6 +14,12 @@ export default async function SignupPage({
   const { role } = await searchParams;
   const initialAccountType: AccountType | undefined =
     role === "company" ? "company" : undefined;
+  const blockedRole = role === "admin" ? "admin" : undefined;
 
-  return <RegisterCard initialAccountType={initialAccountType} />;
+  return (
+    <RegisterCard
+      initialAccountType={initialAccountType}
+      blockedRole={blockedRole}
+    />
+  );
 }

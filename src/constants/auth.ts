@@ -42,6 +42,11 @@ export const LOGIN_ROLE_OPTIONS = {
     title: "企業",
     description: "求人・案件を掲載する",
   },
+  admin: {
+    value: "admin",
+    title: "管理者",
+    description: "プラットフォーム全体を管理します。",
+  },
 } as const;
 
 export const LOGIN_ERRORS = {
@@ -108,6 +113,11 @@ export const REGISTER_FORM = {
   hasAccount: "すでにアカウントをお持ちの方",
   loginCta: "ログイン",
   loginHref: "/login",
+} as const;
+
+export const REGISTER_ERRORS = {
+  adminNotAllowed:
+    "管理者アカウントは登録できません。デモでは「エンジニア」または「企業」のみご登録いただけます。",
 } as const;
 
 export const REGISTER_COMPLETION = {

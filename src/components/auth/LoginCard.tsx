@@ -168,7 +168,7 @@ export function LoginCard() {
               <p className="font-semibold text-white/90">
                 {LOGIN_DEMO_HELPER.title}
               </p>
-              <div className="mt-2.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="mt-2.5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="min-w-0">
                   <p className="font-medium text-white/80">
                     {LOGIN_ROLE_OPTIONS.engineer.title}
@@ -182,6 +182,13 @@ export function LoginCard() {
                   </p>
                   <p className="mt-0.5 truncate">{DEMO_ACCOUNTS.company.email}</p>
                   <p>Password: {DEMO_ACCOUNTS.company.password}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-white/80">
+                    {LOGIN_ROLE_OPTIONS.admin.title}
+                  </p>
+                  <p className="mt-0.5 truncate">{DEMO_ACCOUNTS.admin.email}</p>
+                  <p>Password: {DEMO_ACCOUNTS.admin.password}</p>
                 </div>
               </div>
               <button

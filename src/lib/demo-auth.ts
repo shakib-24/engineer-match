@@ -10,7 +10,7 @@
  * or cookies.
  */
 
-export type DemoRole = "engineer" | "company";
+export type DemoRole = "engineer" | "company" | "admin";
 
 interface DemoAccount {
   email: string;
@@ -29,10 +29,22 @@ export const DEMO_ACCOUNTS: Record<DemoRole, DemoAccount> = {
     password: "demo123",
     role: "company",
   },
+  admin: {
+    email: "admin@example.com",
+    password: "Admin123!",
+    role: "admin",
+  },
 };
 
 export function getDashboardPath(role: DemoRole): string {
-  return role === "engineer" ? "/engineer/dashboard" : "/company/dashboard";
+  switch (role) {
+    case "engineer":
+      return "/engineer/dashboard";
+    case "company":
+      return "/company/dashboard";
+    case "admin":
+      return "/admin";
+  }
 }
 
 export function isValidDemoLogin(
