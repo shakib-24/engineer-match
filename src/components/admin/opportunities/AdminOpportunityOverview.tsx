@@ -4,6 +4,7 @@ import {
   AdminDetailGrid,
   AdminDetailSection,
 } from "@/components/admin/shared/AdminDetailSection";
+import { EmploymentConditionsSummary } from "@/components/jobs/EmploymentConditionsSummary";
 import {
   ADMIN_OPPORTUNITY_DETAIL_SECTIONS,
   type AdminOpportunity,
@@ -37,6 +38,10 @@ export function AdminOpportunityOverview({ opportunity }: AdminOpportunityOvervi
           <AdminDetailField label="契約形態" value={opportunity.contractType} />
         </AdminDetailGrid>
       </AdminDetailSection>
+
+      {opportunity.serviceCategory === "就職" && opportunity.employmentConditions && (
+        <EmploymentConditionsSummary conditions={opportunity.employmentConditions} />
+      )}
 
       <AdminDetailSection title={ADMIN_OPPORTUNITY_DETAIL_SECTIONS.requiredSkills}>
         <ul className="flex flex-wrap gap-2">

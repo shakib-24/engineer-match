@@ -5,6 +5,7 @@ import { ArrowLeft, Briefcase, MapPin } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { CompanyStatistics } from "@/components/company/CompanyStatistics";
 import { JobDetailActions } from "@/components/company/JobStatusBadge";
+import { EmploymentConditionsSummary } from "@/components/jobs/EmploymentConditionsSummary";
 import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
 import {
   APPLICANT_STATUS_BADGE_STYLES,
@@ -225,6 +226,10 @@ export default async function CompanyJobDetailPage({
               </ul>
             </div>
           </section>
+
+          {job.contractType === "就職" && job.employmentConditions && (
+            <EmploymentConditionsSummary conditions={job.employmentConditions} />
+          )}
         </div>
 
         <div className="lg:col-span-1">

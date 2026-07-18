@@ -8,6 +8,7 @@ import { JobDescription } from "@/components/jobs/JobDescription";
 import { RequiredSkills } from "@/components/jobs/RequiredSkills";
 import { PreferredSkills } from "@/components/jobs/PreferredSkills";
 import { WorkingConditions } from "@/components/jobs/WorkingConditions";
+import { EmploymentConditionsSummary } from "@/components/jobs/EmploymentConditionsSummary";
 import { Benefits } from "@/components/jobs/Benefits";
 import { SelectionFlow } from "@/components/jobs/SelectionFlow";
 import { CompanyInfo } from "@/components/jobs/CompanyInfo";
@@ -72,6 +73,9 @@ export default async function EngineerJobDetailPage({
           <RequiredSkills skills={job.requiredSkills} />
           <PreferredSkills skills={job.preferredSkills} />
           <WorkingConditions conditions={job.workConditions} />
+          {job.contractType === "就職" && job.employmentConditions && (
+            <EmploymentConditionsSummary conditions={job.employmentConditions} />
+          )}
           <Benefits benefits={job.benefits} />
           <SelectionFlow steps={job.selectionFlow} />
           <CompanyInfo job={job} />

@@ -15,6 +15,8 @@ import {
   X,
 } from "lucide-react";
 import { ProfileSection } from "@/components/engineer/profile/ProfileSection";
+import { EmploymentConditionsFields } from "@/components/company/EmploymentConditionsFields";
+import { EmploymentConditionsSummary } from "@/components/jobs/EmploymentConditionsSummary";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,6 +42,8 @@ import {
   type JobPostingStatus,
   type WorkStyle,
 } from "@/constants/company-jobs";
+import { createEmptyEmploymentConditions, type EmploymentConditions } from "@/constants/employment";
+import { validateEmploymentConditions } from "@/lib/employment-validation";
 
 const SELECT_CLASS =
   "h-9 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -70,6 +74,7 @@ export interface JobFormState {
   benefits: string;
   status: JobPostingStatus;
   isPublic: boolean;
+  employmentConditions: EmploymentConditions;
 }
 
 export function buildInitialFormState(job?: CompanyJob): JobFormState {
@@ -94,6 +99,7 @@ export function buildInitialFormState(job?: CompanyJob): JobFormState {
       benefits: "",
       status: "下書き",
       isPublic: false,
+      employmentConditions: createEmptyEmploymentConditions(),
     };
   }
 
@@ -121,6 +127,7 @@ export function buildInitialFormState(job?: CompanyJob): JobFormState {
     benefits: job.benefits.join("\n"),
     status: job.status,
     isPublic: job.isPublic,
+    employmentConditions: job.employmentConditions ?? createEmptyEmploymentConditions(),
   };
 }
 
@@ -128,9 +135,15 @@ interface JobFormFieldsProps {
   state: JobFormState;
   onChange: (patch: Partial<JobFormState>) => void;
   idPrefix: string;
+  employmentErrors?: Record<string, string>;
 }
 
-export function JobFormFields({ state, onChange, idPrefix }: JobFormFieldsProps) {
+export function JobFormFields({
+  state,
+  onChange,
+  idPrefix,
+  employmentErrors = {},
+}: JobFormFieldsProps) {
   const workConditionCounter = useRef(state.workConditions.length);
 
   function addWorkCondition() {
@@ -314,6 +327,17 @@ export function JobFormFields({ state, onChange, idPrefix }: JobFormFieldsProps)
           </div>
         </div>
       </ProfileSection>
+
+      {state.contractType === "就職" && (
+        <EmploymentConditionsFields
+          conditions={state.employmentConditions}
+          onChange={(patch) =>
+            onChange({ employmentConditions: { ...state.employmentConditions, ...patch } })
+          }
+          idPrefix={idPrefix}
+          errors={employmentErrors}
+        />
+      )}
 
       <ProfileSection title={FORM_SECTION_LABELS.requiredSkills} icon={ClipboardList}>
         <div className="flex flex-col gap-1.5">
@@ -577,6 +601,11 @@ export function JobFormActions({
               </dd>
             </div>
           </dl>
+          {state.contractType === "就職" && (
+            <div className="mt-4">
+              <EmploymentConditionsSummary conditions={state.employmentConditions} />
+            </div>
+          )}
         </div>
       )}
 
@@ -631,18 +660,43 @@ export function JobFormActions({
   );
 }
 
+export function getEmploymentErrors(state: JobFormState): Record<string, string> {
+  if (state.contractType !== "就職") return {};
+  const errors = validateEmploymentConditions(state.employmentConditions);
+  return Object.fromEntries(errors.map((error) => [error.fieldId, error.message]));
+}
+
+export function focusFirstEmploymentError(errors: Record<string, string>, idPrefix: string) {
+  const firstFieldId = Object.keys(errors)[0];
+  if (!firstFieldId) return;
+  const element = document.getElementById(`${idPrefix}-emp-${firstFieldId}`);
+  element?.focus();
+}
+
 export function CreateJobForm() {
   const [state, setState] = useState<JobFormState>(() => buildInitialFormState());
   const [showPreview, setShowPreview] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [employmentErrors, setEmploymentErrors] = useState<Record<string, string>>({});
 
   function updateState(patch: Partial<JobFormState>) {
     setState((prev) => ({ ...prev, ...patch }));
   }
 
+  function attemptSave(onValid: () => void) {
+    const errors = getEmploymentErrors(state);
+    if (Object.keys(errors).length > 0) {
+      setEmploymentErrors(errors);
+      focusFirstEmploymentError(errors, "create");
+      return;
+    }
+    setEmploymentErrors({});
+    onValid();
+  }
+
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSavedMessage(CREATE_JOB_META.saveSuccessMessage);
+    attemptSave(() => setSavedMessage(CREATE_JOB_META.saveSuccessMessage));
   }
 
   function handleSaveDraft() {
@@ -654,10 +708,15 @@ export function CreateJobForm() {
       onSubmit={handleSubmit}
       className="mx-auto flex w-full max-w-4xl flex-col gap-6"
     >
-      <JobFormFields state={state} onChange={updateState} idPrefix="create" />
+      <JobFormFields
+        state={state}
+        onChange={updateState}
+        idPrefix="create"
+        employmentErrors={employmentErrors}
+      />
       <JobFormActions
         state={state}
-        onSave={() => setSavedMessage(CREATE_JOB_META.saveSuccessMessage)}
+        onSave={() => attemptSave(() => setSavedMessage(CREATE_JOB_META.saveSuccessMessage))}
         onSaveDraft={handleSaveDraft}
         showPreview={showPreview}
         onTogglePreview={() => setShowPreview((prev) => !prev)}
