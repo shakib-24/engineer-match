@@ -5,14 +5,18 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { CreateJobForm } from "@/components/company/CreateJobForm";
 import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
 import { CREATE_JOB_META, JOB_DETAIL_META } from "@/constants/company-jobs";
+import { createClient } from "@/lib/supabase/server";
+import { listSkills } from "@/lib/company/jobs";
 
 export const metadata: Metadata = {
   title: "求人・案件を新規作成 | ENGINEER MATCH",
   description: "新しい求人・案件を作成できます。",
 };
 
-export default function CompanyNewJobPage() {
+export default async function CompanyNewJobPage() {
   const user = USER_MENU.company;
+  const supabase = await createClient();
+  const skills = await listSkills(supabase);
 
   return (
     <DashboardShell
@@ -41,7 +45,7 @@ export default function CompanyNewJobPage() {
         </p>
       </div>
 
-      <CreateJobForm />
+      <CreateJobForm skills={skills} />
     </DashboardShell>
   );
 }

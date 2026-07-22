@@ -1,68 +1,112 @@
 "use client";
 
-import { useState, type SubmitEvent } from "react";
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   JobFormActions,
   JobFormFields,
   buildInitialFormState,
-  focusFirstEmploymentError,
-  getEmploymentErrors,
+  buildOpportunityInput,
+  validateJobForm,
   type JobFormState,
 } from "@/components/company/CreateJobForm";
-import { EDIT_JOB_META, type CompanyJob } from "@/constants/company-jobs";
+import { createClient } from "@/lib/supabase/client";
+import { updateCompanyOpportunity, type OpportunityDetail, type Skill } from "@/lib/company/jobs";
+import { EDIT_JOB_META, JOB_FORM_BUTTON_LABELS, JOB_FORM_ERRORS } from "@/constants/company-jobs";
 
 interface EditJobFormProps {
-  job: CompanyJob;
+  detail: OpportunityDetail;
+  skills: Skill[];
 }
 
-export function EditJobForm({ job }: EditJobFormProps) {
-  const [state, setState] = useState<JobFormState>(() => buildInitialFormState(job));
-  const [showPreview, setShowPreview] = useState(false);
-  const [savedMessage, setSavedMessage] = useState<string | null>(null);
-  const [employmentErrors, setEmploymentErrors] = useState<Record<string, string>>({});
-  const idPrefix = `edit-${job.id}`;
+export function EditJobForm({ detail, skills }: EditJobFormProps) {
+  const router = useRouter();
+  const [state, setState] = useState<JobFormState>(() => buildInitialFormState(detail));
+  const [isSaving, setIsSaving] = useState(false);
+  const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [formStatus, setFormStatus] = useState<"error" | "success" | null>(null);
+  const idPrefix = `edit-${detail.opportunity.id}`;
 
   function updateState(patch: Partial<JobFormState>) {
     setState((prev) => ({ ...prev, ...patch }));
   }
 
-  function attemptSave(onValid: () => void) {
-    const errors = getEmploymentErrors(state);
-    if (Object.keys(errors).length > 0) {
-      setEmploymentErrors(errors);
-      focusFirstEmploymentError(errors, idPrefix);
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isSaving) return;
+
+    setFormMessage(null);
+    setFormStatus(null);
+
+    const validationError = validateJobForm(state);
+    if (validationError) {
+      setFormMessage(validationError);
+      setFormStatus("error");
       return;
     }
-    setEmploymentErrors({});
-    onValid();
-  }
 
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    attemptSave(() => setSavedMessage(EDIT_JOB_META.saveSuccessMessage));
+    setIsSaving(true);
+
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setFormMessage(JOB_FORM_ERRORS.notSignedIn);
+        setFormStatus("error");
+        return;
+      }
+
+      const input = buildOpportunityInput(state);
+      const { error, stage } = await updateCompanyOpportunity(
+        supabase,
+        user.id,
+        detail.opportunity.id,
+        input,
+      );
+
+      if (error) {
+        console.error("[job-form] update failed:", error, "stage:", stage);
+        setFormMessage(
+          stage === "child"
+            ? JOB_FORM_ERRORS.partialSaveFailed
+            : stage === "skills"
+              ? JOB_FORM_ERRORS.skillsSaveFailed
+              : JOB_FORM_ERRORS.saveFailed,
+        );
+        setFormStatus("error");
+        return;
+      }
+
+      setFormMessage(EDIT_JOB_META.saveSuccessMessage);
+      setFormStatus("success");
+      router.refresh();
+    } catch (err) {
+      console.error("[job-form] unexpected update error:", err);
+      setFormMessage(JOB_FORM_ERRORS.saveFailed);
+      setFormStatus("error");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mx-auto flex w-full max-w-4xl flex-col gap-6"
-    >
+    <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <JobFormFields
         state={state}
         onChange={updateState}
+        skills={skills}
         idPrefix={idPrefix}
-        employmentErrors={employmentErrors}
+        isContractTypeLocked
       />
       <JobFormActions
-        state={state}
-        onSave={() => attemptSave(() => setSavedMessage(EDIT_JOB_META.saveSuccessMessage))}
-        onSaveDraft={() => setSavedMessage(EDIT_JOB_META.draftSuccessMessage)}
-        showPreview={showPreview}
-        onTogglePreview={() => setShowPreview((prev) => !prev)}
-        savedMessage={savedMessage}
-        onDismissSavedMessage={() => setSavedMessage(null)}
-        demoNote={EDIT_JOB_META.demoNote}
+        isSaving={isSaving}
+        formMessage={formMessage}
+        formStatus={formStatus}
         cancelHref={EDIT_JOB_META.cancelHref}
+        saveLabel={JOB_FORM_BUTTON_LABELS.save}
       />
     </form>
   );

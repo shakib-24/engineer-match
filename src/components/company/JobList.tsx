@@ -1,21 +1,26 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { RotateCcw, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { JobCard } from "@/components/company/JobCard";
 import { JobSummaryCards } from "@/components/company/JobSummaryCards";
+import { createClient } from "@/lib/supabase/client";
 import {
+  setCompanyOpportunityStatus,
+  type CompanyContractType,
+  type JobStatus,
+  type OpportunityListItem,
+} from "@/lib/company/jobs";
+import {
+  CLOSE_RECRUITMENT_DIALOG_LABELS,
   CONTRACT_TYPE_OPTIONS,
-  DUPLICATE_TOAST_MESSAGE,
   EMPTY_STATE_LABELS,
   FILTERED_EMPTY_STATE_LABELS,
   JOB_FILTER_LABELS,
-  JOB_STATUSES,
+  JOB_STATUS_OPTIONS,
   SORT_OPTIONS,
-  type CompanyJob,
-  type ContractType,
-  type JobPostingStatus,
   type SortOption,
 } from "@/constants/company-jobs";
 
@@ -23,14 +28,14 @@ const SELECT_CLASSNAME =
   "h-11 w-full min-w-0 max-w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none";
 
 interface JobListProps {
-  jobs: CompanyJob[];
+  jobs: OpportunityListItem[];
 }
 
-export function JobList({ jobs: initialJobs }: JobListProps) {
-  const [jobs, setJobs] = useState<CompanyJob[]>(initialJobs);
+export function JobList({ jobs }: JobListProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<JobPostingStatus | "all">("all");
-  const [contractTypeFilter, setContractTypeFilter] = useState<ContractType | "all">(
+  const [statusFilter, setStatusFilter] = useState<JobStatus | "all">("all");
+  const [contractTypeFilter, setContractTypeFilter] = useState<CompanyContractType | "all">(
     "all",
   );
   const [sortOption, setSortOption] = useState<SortOption>("newest");
@@ -41,15 +46,32 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
     window.setTimeout(() => setToastMessage(null), 3000);
   }
 
-  function handleDuplicate() {
-    showToast(DUPLICATE_TOAST_MESSAGE);
-  }
+  async function handleCloseRecruitment(id: string) {
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  function handleCloseRecruitment(id: string) {
-    setJobs((prev) =>
-      prev.map((job) => (job.id === id ? { ...job, status: "募集終了" } : job)),
-    );
-    showToast("募集を終了しました。");
+      if (!user) {
+        showToast(CLOSE_RECRUITMENT_DIALOG_LABELS.errorMessage);
+        return;
+      }
+
+      const { error } = await setCompanyOpportunityStatus(supabase, user.id, id, "closed");
+
+      if (error) {
+        console.error("[job-list] close recruitment failed:", error);
+        showToast(CLOSE_RECRUITMENT_DIALOG_LABELS.errorMessage);
+        return;
+      }
+
+      showToast(CLOSE_RECRUITMENT_DIALOG_LABELS.toastMessage);
+      router.refresh();
+    } catch (err) {
+      console.error("[job-list] unexpected close recruitment error:", err);
+      showToast(CLOSE_RECRUITMENT_DIALOG_LABELS.errorMessage);
+    }
   }
 
   function handleResetFilters() {
@@ -67,13 +89,12 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
     const filtered = jobs.filter((job) => {
       if (query && !job.title.toLowerCase().includes(query)) return false;
       if (statusFilter !== "all" && job.status !== statusFilter) return false;
-      if (contractTypeFilter !== "all" && job.contractType !== contractTypeFilter)
-        return false;
+      if (contractTypeFilter !== "all" && job.contract_type !== contractTypeFilter) return false;
       return true;
     });
 
     const sorted = [...filtered].sort((a, b) => {
-      const diff = a.publishedDateISO.localeCompare(b.publishedDateISO);
+      const diff = a.created_at.localeCompare(b.created_at);
       return sortOption === "newest" ? -diff : diff;
     });
 
@@ -83,12 +104,8 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
   if (jobs.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
-        <p className="text-sm font-semibold text-foreground">
-          {EMPTY_STATE_LABELS.title}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {EMPTY_STATE_LABELS.description}
-        </p>
+        <p className="text-sm font-semibold text-foreground">{EMPTY_STATE_LABELS.title}</p>
+        <p className="text-sm text-muted-foreground">{EMPTY_STATE_LABELS.description}</p>
       </div>
     );
   }
@@ -132,15 +149,13 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
             <select
               id="job-status-filter"
               value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as JobPostingStatus | "all")
-              }
+              onChange={(event) => setStatusFilter(event.target.value as JobStatus | "all")}
               className={SELECT_CLASSNAME}
             >
               <option value="all">{JOB_FILTER_LABELS.statusAllLabel}</option>
-              {JOB_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {status}
+              {JOB_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -157,14 +172,14 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
               id="job-contract-filter"
               value={contractTypeFilter}
               onChange={(event) =>
-                setContractTypeFilter(event.target.value as ContractType | "all")
+                setContractTypeFilter(event.target.value as CompanyContractType | "all")
               }
               className={SELECT_CLASSNAME}
             >
               <option value="all">{JOB_FILTER_LABELS.contractTypeAllLabel}</option>
-              {CONTRACT_TYPE_OPTIONS.map((type) => (
-                <option key={type} value={type}>
-                  {type}
+              {CONTRACT_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -204,9 +219,7 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        {visibleJobs.length}件の求人・案件
-      </p>
+      <p className="text-sm text-muted-foreground">{visibleJobs.length}件の求人・案件</p>
 
       {visibleJobs.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
@@ -228,11 +241,7 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
         <ul className="flex flex-col gap-4">
           {visibleJobs.map((job) => (
             <li key={job.id}>
-              <JobCard
-                job={job}
-                onDuplicate={handleDuplicate}
-                onCloseRecruitment={handleCloseRecruitment}
-              />
+              <JobCard job={job} onCloseRecruitment={handleCloseRecruitment} />
             </li>
           ))}
         </ul>

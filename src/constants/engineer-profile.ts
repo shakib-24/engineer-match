@@ -84,11 +84,18 @@ export const TECHNICAL_SKILLS = [
   { name: "PostgreSQL", itssLevel: 3, experienceYears: 4 },
 ] as const;
 
-export const HUMAN_SKILLS = [
-  { name: "コミュニケーション能力", rating: 4 },
-  { name: "ヒアリング力", rating: 5 },
-  { name: "プレゼンテーション力", rating: 3 },
-] as const;
+/**
+ * ヒューマンスキル (コミュニケーション能力 / ヒアリング力 / プレゼンテーション力) no
+ * longer has a mock rating array here -- it's real Supabase data now (see
+ * src/lib/engineer/skill-assessments.ts, public.skill_assessments +
+ * skill_assessment_attempts, 030_skill_assessments.sql).
+ */
+export const HUMAN_SKILL_EDIT_NOTE = {
+  description:
+    "ヒューマンスキルは診断結果に基づいて表示されます。プロフィール画面から各診断を実施・再診断してください。",
+  ctaLabel: "プロフィールで診断する",
+  ctaHref: "/engineer/profile",
+} as const;
 
 export const BUSINESS_SKILLS = [
   { name: "論理的思考力", rating: 4 },
@@ -383,14 +390,6 @@ export const SKILL_OPTIONS = [
   "GraphQL",
 ] as const;
 
-export const HUMAN_SKILL_OPTIONS = [
-  "コミュニケーション能力",
-  "ヒアリング力",
-  "プレゼンテーション力",
-  "チームマネジメント力",
-  "リーダーシップ",
-] as const;
-
 export const BUSINESS_SKILL_OPTIONS = [
   "論理的思考力",
   "問題解決力",
@@ -408,7 +407,6 @@ export const SKILL_ROW_LABELS = {
   ratingLabel: "自己評価",
   experienceYearsLabel: "経験年数（年）",
   addTechnicalLabel: "テクニカルスキルを追加",
-  addHumanLabel: "ヒューマンスキルを追加",
   addBusinessLabel: "ビジネススキルを追加",
   removeLabel: "このスキルを削除",
 } as const;

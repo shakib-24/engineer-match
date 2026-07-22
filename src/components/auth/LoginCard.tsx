@@ -23,12 +23,9 @@ import {
   LOGIN_VISUAL,
 } from "@/constants/auth";
 import { fadeUpItem } from "@/lib/motion";
-import {
-  DEMO_ACCOUNTS,
-  getDashboardPath,
-  isValidDemoLogin,
-  type DemoRole,
-} from "@/lib/demo-auth";
+import { DEMO_ACCOUNTS, type DemoRole } from "@/lib/demo-auth";
+import { createClient } from "@/lib/supabase/client";
+import { ACTIVE_STATUS, getDashboardPathForRole, getUserAccount } from "@/lib/auth/account";
 
 function GoogleIcon(props: ComponentProps<"svg">) {
   return (
@@ -61,8 +58,6 @@ function GitHubIcon(props: ComponentProps<"svg">) {
   );
 }
 
-type LoginErrorKind = "role" | "credentials" | null;
-
 const ERROR_MESSAGE_ID = "login-error-message";
 
 export function LoginCard() {
@@ -70,10 +65,14 @@ export function LoginCard() {
   const variants = fadeUpItem(prefersReducedMotion, { duration: 0.5 });
   const router = useRouter();
 
+  // `role` now only drives the demo-fill convenience button below — it is
+  // never sent to Supabase and never used to decide the post-login redirect.
+  // The redirect role always comes from public.users (requirement: never
+  // trust a role supplied by the frontend).
   const [role, setRole] = useState<DemoRole | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errorKind, setErrorKind] = useState<LoginErrorKind>(null);
+  const [formMessage, setFormMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -84,52 +83,109 @@ export function LoginCard() {
   }
 
   useEffect(() => {
-    if (errorKind) {
+    if (formMessage) {
       errorRef.current?.focus();
     }
-  }, [errorKind]);
+  }, [formMessage]);
 
-  const errorMessage =
-    errorKind === "role"
-      ? LOGIN_ERRORS.roleRequired
-      : errorKind === "credentials"
-        ? LOGIN_ERRORS.invalidCredentials
-        : null;
+  const isCredentialsError = formMessage === LOGIN_ERRORS.invalidCredentials;
+  const isRoleFillReminder = formMessage === LOGIN_ERRORS.roleRequired;
 
   function handleRoleChange(nextRole: DemoRole) {
     setRole(nextRole);
-    setErrorKind(null);
+    setFormMessage(null);
   }
 
   function handleDemoFill() {
     if (!role) {
-      setErrorKind("role");
+      setFormMessage(LOGIN_ERRORS.roleRequired);
       return;
     }
     const account = DEMO_ACCOUNTS[role];
     setEmail(account.email);
     setPassword(account.password);
-    setErrorKind(null);
+    setFormMessage(null);
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!role) {
-      setErrorKind("role");
-      return;
-    }
+    // Prevent duplicate submission while a request is already in flight.
+    if (isLoading) return;
 
-    if (!isValidDemoLogin(role, email, password)) {
-      setErrorKind("credentials");
-      return;
-    }
-
-    setErrorKind(null);
+    setFormMessage(null);
     setIsLoading(true);
-    window.setTimeout(() => {
-      router.push(getDashboardPath(role));
-    }, 700);
+
+    try {
+      const supabase = createClient();
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({ email, password });
+
+      if (authError) {
+        console.error("[login] signInWithPassword failed:", authError);
+        const code = (authError as { code?: string }).code ?? "";
+        const rawMessage = authError.message?.toLowerCase() ?? "";
+
+        if (
+          code === "email_not_confirmed" ||
+          rawMessage.includes("email not confirmed")
+        ) {
+          setFormMessage(LOGIN_ERRORS.emailNotConfirmed);
+        } else if (
+          code === "invalid_credentials" ||
+          rawMessage.includes("invalid login credentials")
+        ) {
+          setFormMessage(LOGIN_ERRORS.invalidCredentials);
+        } else {
+          setFormMessage(LOGIN_ERRORS.unexpected);
+        }
+        return;
+      }
+
+      const user = authData.user;
+      if (!user) {
+        setFormMessage(LOGIN_ERRORS.unexpected);
+        return;
+      }
+
+      const account = await getUserAccount(supabase, user.id);
+
+      if (!account) {
+        await supabase.auth.signOut();
+        setFormMessage(LOGIN_ERRORS.missingProfile);
+        return;
+      }
+
+      if (account.status !== ACTIVE_STATUS) {
+        await supabase.auth.signOut();
+        setFormMessage(LOGIN_ERRORS.inactiveAccount);
+        return;
+      }
+
+      if (account.role === "INSTRUCTOR") {
+        // Valid credentials, active account -- there is just no dashboard
+        // built for this role yet. Keep the session; do not sign out and do
+        // not redirect anywhere.
+        setFormMessage(LOGIN_ERRORS.instructorNotAvailable);
+        return;
+      }
+
+      const dashboardPath = getDashboardPathForRole(account.role);
+      if (!dashboardPath) {
+        console.error("[login] unrecognized role from public.users:", account.role);
+        await supabase.auth.signOut();
+        setFormMessage(LOGIN_ERRORS.unsupportedRole);
+        return;
+      }
+
+      router.push(dashboardPath);
+      router.refresh();
+    } catch (err) {
+      console.error("[login] unexpected error:", err);
+      setFormMessage(LOGIN_ERRORS.unexpected);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -161,12 +217,11 @@ export function LoginCard() {
             <div className="flex flex-col gap-2.5">
               <span className="text-sm leading-none font-medium text-white/90">
                 {LOGIN_ROLE_LABEL}
-                <span className="text-destructive">*</span>
               </span>
               <RoleSelector
                 value={role}
                 onChange={handleRoleChange}
-                invalid={errorKind === "role"}
+                invalid={isRoleFillReminder}
                 errorId={ERROR_MESSAGE_ID}
               />
             </div>
@@ -221,9 +276,9 @@ export function LoginCard() {
                 value={email}
                 onChange={(event) => {
                   setEmail(event.target.value);
-                  setErrorKind(null);
+                  setFormMessage(null);
                 }}
-                aria-invalid={errorKind === "credentials"}
+                aria-invalid={isCredentialsError}
                 placeholder={LOGIN_FORM.email.placeholder}
                 className="h-12 rounded-xl border-white/20 bg-white/10 text-sm text-white placeholder:text-white/40 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/30 focus-visible:border-cyan-300 focus-visible:ring-2 focus-visible:ring-cyan-300/30"
               />
@@ -238,9 +293,9 @@ export function LoginCard() {
               value={password}
               onChange={(value) => {
                 setPassword(value);
-                setErrorKind(null);
+                setFormMessage(null);
               }}
-              invalid={errorKind === "credentials"}
+              invalid={isCredentialsError}
             />
 
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -270,12 +325,12 @@ export function LoginCard() {
               aria-live="assertive"
               id={ERROR_MESSAGE_ID}
               className={
-                errorMessage
+                formMessage
                   ? "rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 focus:outline-none"
                   : "sr-only"
               }
             >
-              {errorMessage}
+              {formMessage}
             </div>
 
             <Button

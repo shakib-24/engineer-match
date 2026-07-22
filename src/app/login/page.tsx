@@ -1,11 +1,37 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { LoginCard } from "@/components/auth/LoginCard";
+import { createClient } from "@/lib/supabase/server";
+import { ACTIVE_STATUS, getDashboardPathForRole, getUserAccount } from "@/lib/auth/account";
 
 export const metadata: Metadata = {
   title: "ログイン | ENGINEER MATCH",
   description: "ENGINEER MATCHにログインして、続きから始めましょう。",
 };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  // Server-side check: an already-authenticated user opening /login is sent
+  // straight to their dashboard. getUser() (not getSession()) revalidates
+  // against Supabase Auth rather than trusting the cookie as-is.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const account = await getUserAccount(supabase, user.id);
+
+    if (account?.status === ACTIVE_STATUS) {
+      const dashboardPath = getDashboardPathForRole(account.role);
+      if (dashboardPath) {
+        redirect(dashboardPath);
+      }
+      // No dashboard for this role yet (e.g. INSTRUCTOR) — fall through and
+      // render the login page rather than redirecting nowhere.
+    }
+    // Inactive/suspended/withdrawn or unreadable account: don't redirect to
+    // a dashboard. Falls through to render the login form normally.
+  }
+
   return <LoginCard />;
 }

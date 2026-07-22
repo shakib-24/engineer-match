@@ -1,6 +1,9 @@
 /**
- * Company (employer) module placeholder content (Japanese).
- * UI only — no backend, no real data, no authentication.
+ * Company (employer) module content (Japanese).
+ * Company profile labels/options below back a real Supabase-backed CRUD
+ * (see src/lib/company/profile.ts). COMPANY_PROFILE_STATISTICS further down
+ * is still placeholder-only — it belongs to the jobs/applicants module,
+ * which hasn't been wired up to real data yet.
  */
 
 // ============================================================
@@ -11,48 +14,56 @@ export const COMPANY_PROFILE_PAGE = {
   title: "企業プロフィール",
   description: "求職者に表示される企業情報を管理できます。",
   editLabel: "編集",
+  cancelLabel: "キャンセル",
   previewLabel: "会社ページを確認",
+  previewDemoMessage: "この機能は今後実装予定です。",
 } as const;
 
-export interface CompanyContact {
-  department: string;
-  email: string;
-  phone: string;
-}
+/** company_profiles.company_size — matches chk_company_profiles_size in 004_profile_tables.sql. */
+export const COMPANY_SIZE_OPTIONS = [
+  { value: "1-10", label: "1〜10名" },
+  { value: "11-50", label: "11〜50名" },
+  { value: "51-100", label: "51〜100名" },
+  { value: "101-300", label: "101〜300名" },
+  { value: "301-1000", label: "301〜1000名" },
+  { value: "1001+", label: "1001名以上" },
+] as const;
 
-export const COMPANY_PROFILE = {
-  name: "株式会社テックイノベーション",
-  logoInitials: "テ",
-  industry: "業務効率化SaaSの開発・提供",
-  employees: "230名",
-  headquarters: "東京都渋谷区渋谷2-1-1 テックタワー15F",
-  website: "https://tech-innovation.example.com",
-  founded: "2014年4月",
-  introduction:
-    "自社SaaSプロダクトを複数展開するテックカンパニーです。技術選定の自由度が高く、エンジニア主導でプロダクトを成長させる文化があります。「テクノロジーで働き方をアップデートする」をミッションに、業務効率化SaaSを中心としたプロダクト群を通じて、国内3,000社以上の企業のDXを支援しています。",
-  businessAreas: [
-    "業務効率化SaaS「TechFlow」の開発・運営",
-    "大手企業向けDXコンサルティング",
-    "クラウドインフラ移行支援",
-    "自社プロダクトのAPI／プラットフォーム提供",
-  ],
-  recruitmentPolicy:
-    "技術力だけでなく、チームで課題を解決する姿勢を重視しています。裁量を持って設計・実装に取り組みたい方、プロダクトの成長を技術で支えたい方を歓迎します。選考では実務に即したスキルシート面談を中心に、カジュアルに技術的な会話をさせていただきます。",
-  benefits: [
-    "社会保険完備",
-    "各種手当（住宅・通勤・家族）",
-    "書籍購入補助（月1万円まで）",
-    "社内勉強会・カンファレンス参加支援",
-    "リモートワーク制度（週2日まで）",
-    "フレックスタイム制度",
-    "資格取得支援制度",
-    "社員持株会",
-  ],
-  contact: {
-    department: "採用担当",
-    email: "recruit@tech-innovation.example.com",
-    phone: "03-1234-5678",
-  } satisfies CompanyContact,
+export const COMPANY_PROFILE_FORM = {
+  companyNameLabel: "会社名",
+  companyNamePlaceholder: "株式会社サンプル",
+  industryLabel: "業種",
+  industryPlaceholder: "業務効率化SaaSの開発・提供",
+  companySizeLabel: "従業員数",
+  companySizePlaceholder: "選択してください",
+  prefectureLabel: "都道府県",
+  prefecturePlaceholder: "東京都",
+  addressLabel: "住所",
+  addressPlaceholder: "渋谷区渋谷2-1-1 テックタワー15F",
+  websiteLabel: "コーポレートサイト",
+  websitePlaceholder: "https://example.com",
+  establishedYearLabel: "設立年",
+  establishedYearPlaceholder: "2014",
+  businessDescriptionLabel: "企業紹介",
+  businessDescriptionPlaceholder: "事業内容や特徴などを入力してください。",
+  logoUrlLabel: "ロゴ画像URL",
+  logoUrlPlaceholder: "https://example.com/logo.png",
+  contactPersonLabel: "ご担当者名",
+  contactPersonPlaceholder: "採用担当 山田",
+  saveLabel: "保存する",
+  savingLabel: "保存中…",
+  savedMessage: "プロフィールを保存しました。",
+  emptyNameMessage: "会社名が未登録です",
+  emptyDescriptionMessage: "企業紹介文が未登録です。",
+} as const;
+
+export const COMPANY_PROFILE_ERRORS = {
+  nameRequired: "会社名を入力してください。",
+  invalidYear: "設立年は1800〜2100の範囲で入力してください。",
+  descriptionTooLong: "企業紹介は2000文字以内で入力してください。",
+  notSignedIn: "ログイン情報を確認できませんでした。再度ログインしてください。",
+  saveFailed:
+    "企業プロフィールの保存に失敗しました。しばらくしてから再度お試しください。",
 } as const;
 
 export interface CompanyStatItem {

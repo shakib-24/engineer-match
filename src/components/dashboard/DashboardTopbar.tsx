@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, LogOut, Menu, X } from "lucide-react";
 import {
   DashboardNavLinks,
   type DashboardNavItem,
 } from "@/components/dashboard/DashboardSidebar";
 import { BRAND } from "@/constants/lp";
+import { COMPANY_NAV, DASHBOARD_LOGOUT, ENGINEER_NAV } from "@/constants/dashboard";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface DashboardTopbarProps {
@@ -25,8 +28,47 @@ export function DashboardTopbar({
   userName,
   userInitials,
 }: DashboardTopbarProps) {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const closeMenu = () => setIsMenuOpen(false);
+
+  // Sign-out is wired up when this shared topbar is rendered with the
+  // engineer or company nav, so behavior for admin callers is unchanged.
+  // There is no dedicated engineer/company-only header component. Matched
+  // by content (not reference) since HMR/bundling can give ENGINEER_NAV /
+  // COMPANY_NAV multiple module instances in dev.
+  const hasWorkingLogout = items.some(
+    (item) =>
+      item.href === ENGINEER_NAV[0].href || item.href === COMPANY_NAV[0].href,
+  );
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+
+  async function handleSignOut() {
+    if (isSigningOut) return;
+    setLogoutError(null);
+    setIsSigningOut(true);
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error("[logout] signOut failed:", error);
+        setLogoutError(DASHBOARD_LOGOUT.errorMessage);
+        setIsSigningOut(false);
+        return;
+      }
+
+      router.push("/login");
+      router.refresh();
+    } catch (err) {
+      console.error("[logout] unexpected error:", err);
+      setLogoutError(DASHBOARD_LOGOUT.errorMessage);
+      setIsSigningOut(false);
+    }
+  }
 
   return (
     <>
@@ -46,14 +88,76 @@ export function DashboardTopbar({
           </h1>
         </div>
 
-        <div className="flex items-center gap-2 rounded-full border border-border py-1.5 pr-3 pl-1.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-            {userInitials}
+        {hasWorkingLogout ? (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsUserMenuOpen((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={isUserMenuOpen}
+              className="flex items-center gap-2 rounded-full border border-border py-1.5 pr-3 pl-1.5 transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                {userInitials}
+              </div>
+              <span className="hidden text-sm font-medium text-foreground sm:inline">
+                {userName}
+              </span>
+            </button>
+
+            {isUserMenuOpen && (
+              <>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label="メニューを閉じる"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="fixed inset-0 z-30 cursor-default"
+                />
+                <div
+                  role="menu"
+                  className="absolute top-full right-0 z-40 mt-2 w-48 rounded-xl border border-border bg-surface py-1.5 shadow-lg"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleSignOut}
+                    disabled={isSigningOut}
+                    aria-busy={isSigningOut}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none disabled:opacity-60"
+                  >
+                    {isSigningOut ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    )}
+                    {isSigningOut
+                      ? DASHBOARD_LOGOUT.loadingLabel
+                      : DASHBOARD_LOGOUT.label}
+                  </button>
+                  {logoutError && (
+                    <p
+                      role="alert"
+                      aria-live="assertive"
+                      className="px-4 pt-1.5 pb-1 text-xs text-red-600"
+                    >
+                      {logoutError}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
-          <span className="hidden text-sm font-medium text-foreground sm:inline">
-            {userName}
-          </span>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2 rounded-full border border-border py-1.5 pr-3 pl-1.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+              {userInitials}
+            </div>
+            <span className="hidden text-sm font-medium text-foreground sm:inline">
+              {userName}
+            </span>
+          </div>
+        )}
       </header>
 
       <div

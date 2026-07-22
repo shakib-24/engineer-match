@@ -3,8 +3,6 @@
  * UI only — no backend, no real data, no authentication.
  */
 
-import { COMPANY_JOBS } from "@/constants/company-jobs";
-
 // ============================================================
 // Page meta
 // ============================================================
@@ -338,8 +336,26 @@ export interface Applicant {
   notes: string;
 }
 
+// This applicant-management module is still fully placeholder/demo (per
+// this file's header) — unrelated to the real Company Job Posting CRUD in
+// src/lib/company/jobs.ts. Previously looked up titles from the
+// company-jobs.ts mock array, which no longer exists now that job postings
+// are real Supabase data; the same demo id->title pairs are kept here
+// directly so this demo page's displayed content is unchanged.
+const DEMO_JOB_TITLES: Record<string, string> = {
+  "1": "バックエンドエンジニア（Java / Spring Boot）",
+  "2": "フロントエンドエンジニア（React / TypeScript）",
+  "3": "インフラエンジニア（AWS / Kubernetes）",
+  "4": "AIエンジニア（Python / 機械学習）",
+  "5": "QAエンジニア（自動化テスト）",
+  "6": "セキュリティエンジニア（SOC運用）",
+  "8": "PM／プロジェクトマネージャー（システム開発）",
+  "11": "データエンジニア（Python / GCP）",
+  "12": "DevOpsエンジニア（Kubernetes / CI/CD）",
+};
+
 function jobTitleOf(id: string): string {
-  return COMPANY_JOBS.find((job) => job.id === id)?.title ?? "";
+  return DEMO_JOB_TITLES[id] ?? "";
 }
 
 const COMPANY_NAME = "株式会社テックイノベーション";

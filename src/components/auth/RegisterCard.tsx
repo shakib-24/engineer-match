@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, useReducedMotion, type Variants } from "motion/react";
-import { Building2, CheckCircle2, UserRound } from "lucide-react";
+import { Building2, CheckCircle2, Loader2, UserRound } from "lucide-react";
 import { AuthHero } from "@/components/auth/AuthHero";
 import { DemoAuthNotice } from "@/components/auth/DemoAuthNotice";
 import { PasswordInput } from "@/components/auth/PasswordInput";
@@ -13,15 +14,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
-  REGISTER_COMPLETION,
+  REGISTER_AUTH_NOTICE,
+  REGISTER_EMAIL_CONFIRMATION,
   REGISTER_ERRORS,
   REGISTER_FORM,
   REGISTER_VISUAL,
 } from "@/constants/auth";
 import { fadeUpItem } from "@/lib/motion";
-import { getDashboardPath } from "@/lib/demo-auth";
+import { createClient } from "@/lib/supabase/client";
+import { getDashboardPathForRole, getUserAccount } from "@/lib/auth/account";
 
 export type AccountType = "engineer" | "company";
+
+/** Roles the public registration page may submit. ADMIN can never originate here. */
+type SignupRole = "ENGINEER" | "INSTRUCTOR" | "COMPANY";
+
+const ALLOWED_SIGNUP_ROLES: readonly SignupRole[] = ["ENGINEER", "INSTRUCTOR", "COMPANY"];
+
+function mapAccountTypeToRole(accountType: AccountType): SignupRole {
+  return accountType === "engineer" ? "ENGINEER" : "COMPANY";
+}
+
+const ERROR_MESSAGE_ID = "register-error-message";
 
 const ACCOUNT_TYPE_OPTIONS = [
   { ...REGISTER_FORM.accountTypes.engineer, icon: UserRound },
@@ -58,6 +72,7 @@ interface RegisterCardProps {
 }
 
 export function RegisterCard({ initialAccountType, blockedRole }: RegisterCardProps) {
+  const router = useRouter();
   const [accountType, setAccountType] = useState<AccountType | null>(
     initialAccountType ?? null,
   );
@@ -66,20 +81,151 @@ export function RegisterCard({ initialAccountType, blockedRole }: RegisterCardPr
     setAccountType(null);
     setSelectorResetKey((key) => key + 1);
   };
-  const [submittedRole, setSubmittedRole] = useState<AccountType | null>(null);
+  // Set once signUp succeeds but no session was returned (email confirmation
+  // required) — swaps the active form for a "check your email" message.
+  const [confirmationRole, setConfirmationRole] = useState<AccountType | null>(null);
+  const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
   const entrance = fadeUpItem(prefersReducedMotion, { duration: 0.5 });
 
   useEffect(() => {
-    if (submittedRole) {
+    if (confirmationRole) {
       completionHeadingRef.current?.focus();
     }
-  }, [submittedRole]);
+  }, [confirmationRole]);
 
-  function handleRegisterSubmit(event: FormEvent<HTMLFormElement>, role: AccountType) {
+  useEffect(() => {
+    if (formMessage) {
+      errorRef.current?.focus();
+    }
+  }, [formMessage]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>, type: AccountType) {
     event.preventDefault();
-    setSubmittedRole(role);
+    if (isLoading) return;
+
+    setFormMessage(null);
+
+    // Validate the selected role before ever calling signUp — only
+    // ENGINEER/INSTRUCTOR/COMPANY may originate from this page, never ADMIN.
+    const selectedRole = mapAccountTypeToRole(type);
+    if (!ALLOWED_SIGNUP_ROLES.includes(selectedRole)) {
+      setFormMessage(REGISTER_ERRORS.roleRequired);
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "").trim();
+    const name =
+      type === "engineer"
+        ? String(formData.get("name") ?? "").trim()
+        : String(formData.get("representative") ?? "").trim();
+    const passwordField = type === "engineer" ? "engineer-password" : "company-password";
+    const confirmField =
+      type === "engineer" ? "engineer-confirm-password" : "company-confirm-password";
+    const password = String(formData.get(passwordField) ?? "");
+    const confirmPassword = String(formData.get(confirmField) ?? "");
+
+    if (password !== confirmPassword) {
+      setFormMessage(REGISTER_ERRORS.passwordMismatch);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role: selectedRole,
+            name,
+          },
+        },
+      });
+
+      if (error) {
+        console.error("[signup] signUp failed:", error);
+        const code = (error as { code?: string }).code ?? "";
+        const status = (error as { status?: number }).status ?? 0;
+        const rawMessage = error.message?.toLowerCase() ?? "";
+
+        if (
+          code === "user_already_exists" ||
+          rawMessage.includes("already registered") ||
+          rawMessage.includes("already exists")
+        ) {
+          setFormMessage(REGISTER_ERRORS.emailInUse);
+        } else if (
+          code === "over_email_send_rate_limit" ||
+          code === "over_request_rate_limit" ||
+          status === 429 ||
+          rawMessage.includes("rate limit")
+        ) {
+          // Checked before the generic "email" match below — Supabase's rate
+          // limit message ("email rate limit exceeded") also contains
+          // "email" and would otherwise be misreported as an invalid address.
+          setFormMessage(REGISTER_ERRORS.rateLimited);
+        } else if (code === "weak_password" || rawMessage.includes("password")) {
+          setFormMessage(REGISTER_ERRORS.weakPassword);
+        } else if (
+          code === "invalid_email" ||
+          code === "email_address_invalid" ||
+          rawMessage.includes("email")
+        ) {
+          setFormMessage(REGISTER_ERRORS.invalidEmail);
+        } else {
+          setFormMessage(REGISTER_ERRORS.unexpected);
+        }
+        return;
+      }
+
+      if (!data.session) {
+        // Email confirmation is required before a session (and the
+        // public.users row's ability to be read back) is usable.
+        setConfirmationRole(type);
+        return;
+      }
+
+      const user = data.user;
+      if (!user) {
+        setFormMessage(REGISTER_ERRORS.unexpected);
+        return;
+      }
+
+      // public.users is populated by the handle_new_user() SECURITY DEFINER
+      // trigger on auth.users insert — never inserted into directly here.
+      const account = await getUserAccount(supabase, user.id);
+      if (!account) {
+        setFormMessage(REGISTER_ERRORS.missingProfile);
+        return;
+      }
+
+      if (account.role === "INSTRUCTOR") {
+        setFormMessage(REGISTER_ERRORS.instructorNotAvailable);
+        return;
+      }
+
+      const dashboardPath = getDashboardPathForRole(account.role);
+      if (!dashboardPath) {
+        console.error("[signup] unrecognized role from public.users:", account.role);
+        setFormMessage(REGISTER_ERRORS.unexpected);
+        return;
+      }
+
+      router.push(dashboardPath);
+      router.refresh();
+    } catch (err) {
+      console.error("[signup] unexpected error:", err);
+      setFormMessage(REGISTER_ERRORS.network);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const stepVariants: Variants = useMemo(
@@ -114,11 +260,11 @@ export function RegisterCard({ initialAccountType, blockedRole }: RegisterCardPr
           </p>
 
           <div className="mt-5">
-            <DemoAuthNotice />
+            <DemoAuthNotice line1={REGISTER_AUTH_NOTICE.line1} line2={REGISTER_AUTH_NOTICE.line2} />
           </div>
 
           <div>
-            {submittedRole ? (
+            {confirmationRole ? (
               <motion.div
                 key="completion"
                 initial="hidden"
@@ -138,21 +284,15 @@ export function RegisterCard({ initialAccountType, blockedRole }: RegisterCardPr
                   aria-live="polite"
                   className="text-lg font-semibold text-white focus:outline-none"
                 >
-                  {REGISTER_COMPLETION.title}
+                  {REGISTER_EMAIL_CONFIRMATION.title}
                 </h2>
-                <p className="text-sm text-white/70">{REGISTER_COMPLETION.note}</p>
+                <p className="text-sm text-white/70">{REGISTER_EMAIL_CONFIRMATION.note}</p>
                 <div className="mt-2 flex w-full flex-col gap-3 sm:flex-row">
                   <Link
                     href={REGISTER_FORM.loginHref}
-                    className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-white/30 bg-white/10 text-sm font-semibold text-white transition-colors duration-200 hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none"
-                  >
-                    {REGISTER_COMPLETION.loginCta}
-                  </Link>
-                  <Link
-                    href={getDashboardPath(submittedRole)}
                     className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#2563EB] text-sm font-semibold text-white shadow-lg shadow-indigo-950/20 transition-[filter] duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none"
                   >
-                    {REGISTER_COMPLETION.dashboardCta}
+                    {REGISTER_EMAIL_CONFIRMATION.loginCta}
                   </Link>
                 </div>
               </motion.div>
@@ -215,7 +355,7 @@ export function RegisterCard({ initialAccountType, blockedRole }: RegisterCardPr
                 animate="visible"
                 variants={stepVariants}
                 className="mt-6 space-y-5"
-                onSubmit={(event) => handleRegisterSubmit(event, "engineer")}
+                onSubmit={(event) => handleSubmit(event, "engineer")}
               >
                 <button
                   type="button"
@@ -274,11 +414,35 @@ export function RegisterCard({ initialAccountType, blockedRole }: RegisterCardPr
 
                 <AgreeTerms id="engineer-agree-terms" />
 
+                <div
+                  ref={accountType === "engineer" ? errorRef : undefined}
+                  tabIndex={-1}
+                  role="alert"
+                  aria-live="assertive"
+                  id={ERROR_MESSAGE_ID}
+                  className={
+                    formMessage
+                      ? "rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 focus:outline-none"
+                      : "sr-only"
+                  }
+                >
+                  {formMessage}
+                </div>
+
                 <Button
                   type="submit"
-                  className="h-12 w-full rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#2563EB] text-sm font-semibold text-white shadow-lg shadow-indigo-950/20 hover:brightness-110"
+                  disabled={isLoading}
+                  aria-busy={isLoading}
+                  className="h-12 w-full rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#2563EB] text-sm font-semibold text-white shadow-lg shadow-indigo-950/20 hover:brightness-110 disabled:opacity-70"
                 >
-                  {REGISTER_FORM.engineerFields.submitLabel}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      {REGISTER_FORM.loadingLabel}
+                    </>
+                  ) : (
+                    REGISTER_FORM.engineerFields.submitLabel
+                  )}
                 </Button>
               </motion.form>
             ) : (
@@ -288,7 +452,7 @@ export function RegisterCard({ initialAccountType, blockedRole }: RegisterCardPr
                 animate="visible"
                 variants={stepVariants}
                 className="mt-6 space-y-5"
-                onSubmit={(event) => handleRegisterSubmit(event, "company")}
+                onSubmit={(event) => handleSubmit(event, "company")}
               >
                 <button
                   type="button"
@@ -363,11 +527,35 @@ export function RegisterCard({ initialAccountType, blockedRole }: RegisterCardPr
 
                 <AgreeTerms id="company-agree-terms" />
 
+                <div
+                  ref={accountType === "company" ? errorRef : undefined}
+                  tabIndex={-1}
+                  role="alert"
+                  aria-live="assertive"
+                  id={ERROR_MESSAGE_ID}
+                  className={
+                    formMessage
+                      ? "rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 focus:outline-none"
+                      : "sr-only"
+                  }
+                >
+                  {formMessage}
+                </div>
+
                 <Button
                   type="submit"
-                  className="h-12 w-full rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#2563EB] text-sm font-semibold text-white shadow-lg shadow-indigo-950/20 hover:brightness-110"
+                  disabled={isLoading}
+                  aria-busy={isLoading}
+                  className="h-12 w-full rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#2563EB] text-sm font-semibold text-white shadow-lg shadow-indigo-950/20 hover:brightness-110 disabled:opacity-70"
                 >
-                  {REGISTER_FORM.companyFields.submitLabel}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      {REGISTER_FORM.loadingLabel}
+                    </>
+                  ) : (
+                    REGISTER_FORM.companyFields.submitLabel
+                  )}
                 </Button>
               </motion.form>
             )}

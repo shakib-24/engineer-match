@@ -51,8 +51,18 @@ export const LOGIN_ROLE_OPTIONS = {
 
 export const LOGIN_ERRORS = {
   roleRequired: "ログインするアカウント種別を選択してください。",
-  invalidCredentials:
-    "デモ用のメールアドレスまたはパスワードが正しくありません。",
+  invalidCredentials: "メールアドレスまたはパスワードが正しくありません。",
+  emailNotConfirmed:
+    "メールアドレスの確認が完了していません。届いた確認メールのリンクをクリックしてください。",
+  missingProfile:
+    "アカウント情報の取得に失敗しました。しばらくしてから再度お試しいただくか、サポートまでお問い合わせください。",
+  inactiveAccount:
+    "現在このアカウントはご利用いただけません。詳細はサポートまでお問い合わせください。",
+  instructorNotAvailable:
+    "講師アカウントでのログインは現在準備中です。もうしばらくお待ちください。",
+  unsupportedRole:
+    "このアカウント種別はサポートされていません。管理者までお問い合わせください。",
+  unexpected: "通信エラーが発生しました。しばらくしてから再度お試しください。",
 } as const;
 
 export const LOGIN_DEMO_HELPER = {
@@ -77,9 +87,15 @@ export const REGISTER_VISUAL = {
   bullets: ["企業と直接つながる", "スキルで探せる", "安心のサポート"] as const,
 } as const;
 
+export const REGISTER_AUTH_NOTICE = {
+  line1: "こちらは本登録です。実際にアカウントが作成されます。",
+  line2: "入力内容は安全に保存され、以後のログインに利用されます。",
+} as const;
+
 export const REGISTER_FORM = {
   title: "アカウント登録",
   description: "まずはアカウント種別をお選びください。",
+  loadingLabel: "登録中…",
   accountTypeLabel: "アカウント種別",
   accountTypes: {
     engineer: {
@@ -120,12 +136,29 @@ export const REGISTER_FORM = {
 
 export const REGISTER_ERRORS = {
   adminNotAllowed:
-    "管理者アカウントは登録できません。デモでは「エンジニア」または「企業」のみご登録いただけます。",
+    "管理者アカウントは登録できません。「エンジニア」または「企業」のみご登録いただけます。",
+  roleRequired:
+    "アカウント種別を確認できませんでした。お手数ですが、アカウント種別を選び直してください。",
+  passwordMismatch: "パスワードが一致しません。もう一度ご確認ください。",
+  emailInUse:
+    "このメールアドレスはすでに登録されています。ログイン画面からログインしてください。",
+  weakPassword:
+    "パスワードの強度が不十分です。8文字以上で、英字と数字を組み合わせて入力してください。",
+  invalidEmail:
+    "メールアドレスの形式が正しくありません。ご確認のうえ、再度入力してください。",
+  rateLimited:
+    "リクエストが集中しています。しばらく時間をおいてから再度お試しください。",
+  instructorNotAvailable:
+    "講師アカウントでのご利用は現在準備中です。もうしばらくお待ちください。",
+  missingProfile:
+    "アカウント情報の取得に失敗しました。しばらくしてから再度お試しいただくか、サポートまでお問い合わせください。",
+  network:
+    "通信エラーが発生しました。ネットワーク接続をご確認のうえ、再度お試しください。",
+  unexpected: "登録処理中にエラーが発生しました。しばらくしてから再度お試しください。",
 } as const;
 
-export const REGISTER_COMPLETION = {
-  title: "登録デモが完了しました。",
-  note: "※ UIデモのため、入力内容は保存されていません。",
+export const REGISTER_EMAIL_CONFIRMATION = {
+  title: "確認メールを送信しました。",
+  note: "受信したメール内のリンクをクリックして、登録を完了してください。",
   loginCta: "ログイン画面へ",
-  dashboardCta: "ダッシュボードを見る",
 } as const;

@@ -16,6 +16,7 @@ import { ProfileHeader } from "@/components/engineer/profile/ProfileHeader";
 import { ProfileSection } from "@/components/engineer/profile/ProfileSection";
 import { ProfileCompletion } from "@/components/engineer/profile/ProfileCompletion";
 import { SkillCard } from "@/components/engineer/profile/SkillCard";
+import { HumanSkillAssessmentCard } from "@/components/engineer/profile/HumanSkillAssessmentCard";
 import { ExperienceTimeline } from "@/components/engineer/profile/ExperienceTimeline";
 import { CertificationCard } from "@/components/engineer/profile/CertificationCard";
 import { PortfolioCard } from "@/components/engineer/profile/PortfolioCard";
@@ -29,7 +30,6 @@ import {
   CERTIFICATIONS_SECTION,
   EDUCATION,
   EDUCATION_SECTION,
-  HUMAN_SKILLS,
   LANGUAGES,
   LANGUAGES_SECTION,
   PORTFOLIO_PROJECTS,
@@ -43,6 +43,8 @@ import {
   WORK_EXPERIENCE,
   WORK_EXPERIENCE_SECTION,
 } from "@/constants/engineer-profile";
+import { createClient } from "@/lib/supabase/server";
+import { listHumanAssessments, listLatestAttempts } from "@/lib/engineer/skill-assessments";
 
 export const metadata: Metadata = {
   title: "プロフィール | ENGINEER MATCH",
@@ -54,8 +56,21 @@ const VISIBILITY_STYLES: Record<string, string> = {
   非公開: "bg-muted text-muted-foreground",
 };
 
-export default function EngineerProfilePage() {
+export default async function EngineerProfilePage() {
   const user = USER_MENU.engineer;
+  const supabase = await createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+
+  const humanAssessments = await listHumanAssessments(supabase);
+  const latestAttempts = authUser
+    ? await listLatestAttempts(
+        supabase,
+        authUser.id,
+        humanAssessments.map((assessment) => assessment.id),
+      )
+    : new Map();
 
   return (
     <DashboardShell
@@ -186,12 +201,12 @@ export default function EngineerProfilePage() {
                   {SKILLS_SECTION.humanTitle}
                 </h3>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {HUMAN_SKILLS.map((skill) => (
-                    <SkillCard
-                      key={skill.name}
-                      variant="rated"
-                      name={skill.name}
-                      rating={skill.rating}
+                  {humanAssessments.map((assessment) => (
+                    <HumanSkillAssessmentCard
+                      key={assessment.id}
+                      name={assessment.name}
+                      code={assessment.code}
+                      finalLevel={latestAttempts.get(assessment.id)?.final_level ?? null}
                     />
                   ))}
                 </div>

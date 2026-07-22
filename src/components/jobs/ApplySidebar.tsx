@@ -1,102 +1,162 @@
 "use client";
 
 import { useState } from "react";
-import { Bookmark, CheckCircle2, MapPin, Share2 } from "lucide-react";
-import {
-  APPLY_SIDEBAR_LABELS,
-  CONTRACT_TYPE_BADGE_STYLES,
-  type Job,
-} from "@/constants/jobs";
-import {
-  markFavoriteJobApplied,
-  toggleFavoriteJob,
-  useIsFavoriteJob,
-} from "@/lib/favorite-jobs-store";
+import Link from "next/link";
+import { Bookmark, CheckCircle2 } from "lucide-react";
+import { APPLY_SIDEBAR_LABELS, CONTRACT_TYPE_BADGE_STYLES, CONTRACT_TYPE_LABEL } from "@/constants/jobs";
+import { applyToOpportunity } from "@/lib/engineer/applications";
+import { addFavorite, removeFavorite } from "@/lib/engineer/favorites";
+import { createClient } from "@/lib/supabase/client";
+import type { CompanyContractType } from "@/lib/engineer/opportunities";
 
 interface ApplySidebarProps {
-  job: Job;
+  opportunityId: string;
+  contractType: CompanyContractType;
+  salaryLabel: string;
+  updatedLabel: string;
+  isSignedIn: boolean;
+  userId: string | null;
+  initialHasApplied: boolean;
+  initialIsFavorited: boolean;
 }
 
-export function ApplySidebar({ job }: ApplySidebarProps) {
-  const [hasApplied, setHasApplied] = useState(false);
-  const isBookmarked = useIsFavoriteJob(job.id);
-  const [hasShared, setHasShared] = useState(false);
+export function ApplySidebar({
+  opportunityId,
+  contractType,
+  salaryLabel,
+  updatedLabel,
+  isSignedIn,
+  userId,
+  initialHasApplied,
+  initialIsFavorited,
+}: ApplySidebarProps) {
+  const [hasApplied, setHasApplied] = useState(initialHasApplied);
+  const [isApplying, setIsApplying] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(initialIsFavorited);
+  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(
+    null,
+  );
 
-  function handleApply() {
+  async function handleApply() {
+    if (!isSignedIn || !userId) {
+      setMessage({ tone: "error", text: APPLY_SIDEBAR_LABELS.signInRequiredMessage });
+      return;
+    }
+    if (hasApplied || isApplying) return;
+
+    setIsApplying(true);
+    setMessage(null);
+
+    const supabase = createClient();
+    const { error } = await applyToOpportunity(supabase, userId, opportunityId);
+
+    setIsApplying(false);
+
+    if (error) {
+      if (error.code === "23505") {
+        setHasApplied(true);
+        setMessage({ tone: "error", text: APPLY_SIDEBAR_LABELS.duplicateApplicationMessage });
+        return;
+      }
+      console.error("[apply-sidebar] apply failed:", error);
+      setMessage({ tone: "error", text: APPLY_SIDEBAR_LABELS.applyErrorMessage });
+      return;
+    }
+
     setHasApplied(true);
-    markFavoriteJobApplied(job.id);
+    setMessage({ tone: "success", text: APPLY_SIDEBAR_LABELS.appliedMessage });
   }
 
-  function handleShare() {
-    setHasShared(true);
-    window.setTimeout(() => setHasShared(false), 2000);
+  async function handleToggleFavorite() {
+    if (!isSignedIn || !userId) {
+      setMessage({ tone: "error", text: APPLY_SIDEBAR_LABELS.signInRequiredMessage });
+      return;
+    }
+
+    const wasFavorited = isFavorited;
+    setIsFavorited(!wasFavorited);
+
+    const supabase = createClient();
+    const { error } = wasFavorited
+      ? await removeFavorite(supabase, userId, opportunityId)
+      : await addFavorite(supabase, userId, opportunityId);
+
+    if (error) {
+      console.error("[apply-sidebar] favorite toggle failed:", error);
+      setIsFavorited(wasFavorited);
+      setMessage({ tone: "error", text: APPLY_SIDEBAR_LABELS.favoriteErrorMessage });
+    }
   }
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
       <span
-        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${CONTRACT_TYPE_BADGE_STYLES[job.contractType]}`}
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${CONTRACT_TYPE_BADGE_STYLES[contractType]}`}
       >
-        {job.contractType}
+        {CONTRACT_TYPE_LABEL[contractType]}
       </span>
 
-      <p className="mt-3 text-lg font-bold text-foreground">{job.salaryLabel}</p>
+      {salaryLabel && <p className="mt-3 text-lg font-bold text-foreground">{salaryLabel}</p>}
 
-      <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
-        <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
-        {job.location}
-      </p>
-
-      {hasApplied ? (
-        <div className="mt-5 flex items-start gap-2 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>{APPLY_SIDEBAR_LABELS.appliedMessage}</span>
+      {message && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`mt-4 flex items-start gap-2 rounded-xl px-4 py-3 text-sm font-medium ${
+            message.tone === "success"
+              ? "bg-green-50 text-green-700"
+              : "bg-red-50 text-red-700"
+          }`}
+        >
+          {message.tone === "success" && (
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          )}
+          <span>{message.text}</span>
         </div>
+      )}
+
+      {!isSignedIn ? (
+        <Link
+          href="/login"
+          className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          {APPLY_SIDEBAR_LABELS.applyLabel}
+        </Link>
+      ) : hasApplied ? (
+        <button
+          type="button"
+          disabled
+          className="mt-5 inline-flex h-11 w-full cursor-not-allowed items-center justify-center rounded-xl bg-muted text-sm font-semibold text-muted-foreground"
+        >
+          {APPLY_SIDEBAR_LABELS.alreadyAppliedLabel}
+        </button>
       ) : (
         <button
           type="button"
           onClick={handleApply}
-          className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+          disabled={isApplying}
+          className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {APPLY_SIDEBAR_LABELS.applyLabel}
+          {isApplying ? APPLY_SIDEBAR_LABELS.applying : APPLY_SIDEBAR_LABELS.applyLabel}
         </button>
       )}
 
-      <div className="mt-3 flex gap-2">
-        <button
-          type="button"
-          onClick={() => toggleFavoriteJob(job.id)}
-          aria-pressed={isBookmarked}
-          className={`inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border text-sm font-semibold transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none ${
-            isBookmarked
-              ? "border-primary bg-primary/5 text-primary"
-              : "border-border bg-surface text-foreground hover:bg-muted"
-          }`}
-        >
-          <Bookmark
-            className={`h-4 w-4 ${isBookmarked ? "fill-primary" : ""}`}
-            aria-hidden="true"
-          />
-          {isBookmarked
-            ? APPLY_SIDEBAR_LABELS.favoritedLabel
-            : APPLY_SIDEBAR_LABELS.favoriteLabel}
-        </button>
-        <button
-          type="button"
-          onClick={handleShare}
-          className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-        >
-          <Share2 className="h-4 w-4" aria-hidden="true" />
-          {hasShared ? APPLY_SIDEBAR_LABELS.sharedLabel : APPLY_SIDEBAR_LABELS.shareLabel}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={handleToggleFavorite}
+        aria-pressed={isFavorited}
+        className={`mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border text-sm font-semibold transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none ${
+          isFavorited
+            ? "border-primary bg-primary/5 text-primary"
+            : "border-border bg-surface text-foreground hover:bg-muted"
+        }`}
+      >
+        <Bookmark className={`h-4 w-4 ${isFavorited ? "fill-primary" : ""}`} aria-hidden="true" />
+        {isFavorited ? APPLY_SIDEBAR_LABELS.favoritedLabel : APPLY_SIDEBAR_LABELS.favoriteLabel}
+      </button>
 
-      <p className="mt-4 text-xs text-muted-foreground">
-        {APPLY_SIDEBAR_LABELS.demoNote}
-      </p>
-
-      <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
-        {APPLY_SIDEBAR_LABELS.updatedLabel}：{job.updatedLabel}
+      <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+        {APPLY_SIDEBAR_LABELS.updatedLabel}：{updatedLabel}
       </p>
     </div>
   );

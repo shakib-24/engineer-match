@@ -1,216 +1,272 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
-import { ProfileCompletion } from "@/components/engineer/profile/ProfileCompletion";
-import { SearchBar } from "@/components/jobs/SearchBar";
-import { ActiveFilters } from "@/components/jobs/ActiveFilters";
-import { FilterSidebar } from "@/components/jobs/FilterSidebar";
-import { FilterDrawer } from "@/components/jobs/FilterDrawer";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { RotateCcw, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { JobCard } from "@/components/jobs/JobCard";
 import { EmptyState } from "@/components/jobs/EmptyState";
 import { Pagination } from "@/components/jobs/Pagination";
 import {
-  DEFAULT_FILTER_STATE,
+  CONTRACT_TYPE_OPTIONS,
+  FILTER_LABELS,
   JOB_LIST_META,
-  JOB_SIDEBAR_LABELS,
-  RECOMMENDED_SKILLS,
-  SALARY_RANGE_CONFIG,
-  type FilterState,
-  type Job,
+  NO_JOBS_STATE_LABELS,
+  SORT_OPTIONS,
+  type SortOption,
 } from "@/constants/jobs";
-import { toggleFavoriteJob, useFavoriteJobs } from "@/lib/favorite-jobs-store";
+import type { CompanyContractType, HydratedOpportunity } from "@/lib/engineer/opportunities";
+import { addFavorite, removeFavorite } from "@/lib/engineer/favorites";
+import { createClient } from "@/lib/supabase/client";
+
+const SELECT_CLASSNAME =
+  "h-11 w-full min-w-0 max-w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none";
 
 interface JobListProps {
-  jobs: Job[];
+  jobs: HydratedOpportunity[];
+  total: number;
+  page: number;
+  pageSize: number;
+  initialFavoriteIds: string[];
+  isSignedIn: boolean;
+  userId: string | null;
+  searchValue: string;
+  contractTypeValue: CompanyContractType | "";
+  sortValue: SortOption;
 }
 
-export function JobList({ jobs }: JobListProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTER_STATE);
-  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
-  const favorites = useFavoriteJobs();
+function buildQueryHref(params: {
+  search: string;
+  contractType: string;
+  sort: string;
+  page: number;
+}): string {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.contractType) query.set("contractType", params.contractType);
+  if (params.sort && params.sort !== "newest") query.set("sort", params.sort);
+  if (params.page > 1) query.set("page", String(params.page));
+  const queryString = query.toString();
+  return queryString ? `/engineer/jobs?${queryString}` : "/engineer/jobs";
+}
 
-  function handleFilterChange(patch: Partial<FilterState>) {
-    setFilters((prev) => ({ ...prev, ...patch }));
+export function JobList({
+  jobs,
+  total,
+  page,
+  pageSize,
+  initialFavoriteIds,
+  isSignedIn,
+  userId,
+  searchValue,
+  contractTypeValue,
+  sortValue,
+}: JobListProps) {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState(searchValue);
+  const [contractType, setContractType] = useState<CompanyContractType | "">(contractTypeValue);
+  const [sortOption, setSortOption] = useState<SortOption>(sortValue);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set(initialFavoriteIds));
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const hasActiveFilters = searchValue !== "" || contractTypeValue !== "";
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
+  function showToast(message: string) {
+    setToastMessage(message);
+    window.setTimeout(() => setToastMessage(null), 3000);
   }
 
-  function handleClearAll() {
+  function applyFilters() {
+    router.push(
+      buildQueryHref({ search: searchQuery.trim(), contractType, sort: sortOption, page: 1 }),
+    );
+  }
+
+  function handleReset() {
     setSearchQuery("");
-    setFilters(DEFAULT_FILTER_STATE);
+    setContractType("");
+    setSortOption("newest");
+    router.push("/engineer/jobs");
   }
 
-  function handleToggleBookmark(id: string) {
-    toggleFavoriteJob(id);
-  }
+  async function handleToggleBookmark(id: string) {
+    if (!isSignedIn || !userId) {
+      showToast(JOB_LIST_META.bookmarkLabel + "にはログインが必要です。");
+      return;
+    }
 
-  const filteredJobs = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return jobs.filter((job) => {
-      if (query) {
-        const haystack = `${job.title} ${job.company} ${job.skills.join(" ")}`.toLowerCase();
-        if (!haystack.includes(query)) return false;
-      }
-      if (
-        filters.contractTypes.length > 0 &&
-        !filters.contractTypes.includes(job.contractType)
-      ) {
-        return false;
-      }
-      if (filters.locations.length > 0 && !filters.locations.includes(job.location)) {
-        return false;
-      }
-      if (
-        filters.workStyles.length > 0 &&
-        !filters.workStyles.includes(job.workStyle)
-      ) {
-        return false;
-      }
-      if (
-        filters.itssLevels.length > 0 &&
-        !filters.itssLevels.includes(job.itssLevel)
-      ) {
-        return false;
-      }
-      if (
-        filters.experienceYears !== null &&
-        job.experienceYearsMin > filters.experienceYears
-      ) {
-        return false;
-      }
-      if (
-        job.salaryMaxManYen < filters.salaryMin ||
-        job.salaryMinManYen > filters.salaryMax
-      ) {
-        return false;
-      }
-      if (
-        filters.updatedWithinDays !== null &&
-        job.updatedDaysAgo > filters.updatedWithinDays
-      ) {
-        return false;
-      }
-      return true;
+    const wasFavorited = favoriteIds.has(id);
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (wasFavorited) next.delete(id);
+      else next.add(id);
+      return next;
     });
-  }, [jobs, searchQuery, filters]);
 
-  const activeFilterCount =
-    filters.contractTypes.length +
-    filters.locations.length +
-    filters.workStyles.length +
-    filters.itssLevels.length +
-    (filters.experienceYears !== null ? 1 : 0) +
-    (filters.updatedWithinDays !== null ? 1 : 0) +
-    (filters.salaryMin !== SALARY_RANGE_CONFIG.min ||
-    filters.salaryMax !== SALARY_RANGE_CONFIG.max
-      ? 1
-      : 0);
+    const supabase = createClient();
+    const { error } = wasFavorited
+      ? await removeFavorite(supabase, userId, id)
+      : await addFavorite(supabase, userId, id);
 
-  const savedJobs = jobs.filter((job) => Boolean(favorites[job.id]));
+    if (error) {
+      console.error("[job-list] favorite toggle failed:", error);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (wasFavorited) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+      showToast("お気に入り処理に失敗しました。しばらくしてから再度お試しください。");
+    }
+  }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-      <div className="flex min-w-0 flex-col gap-6 lg:col-span-3">
-        <SearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          onOpenFilters={() => setIsFilterDrawerOpen(true)}
-          activeFilterCount={activeFilterCount}
-        />
+    <div className="flex flex-col gap-6">
+      <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
+          <div className="min-w-[220px] flex-1">
+            <label
+              htmlFor="job-search-input"
+              className="mb-1.5 block text-xs font-medium text-muted-foreground"
+            >
+              {FILTER_LABELS.searchLabel}
+            </label>
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                id="job-search-input"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") applyFilters();
+                }}
+                placeholder={FILTER_LABELS.searchPlaceholder}
+                className="h-11 pl-9"
+              />
+            </div>
+          </div>
 
-        <ActiveFilters
-          searchQuery={searchQuery}
-          filters={filters}
-          onSearchChange={setSearchQuery}
-          onFilterChange={handleFilterChange}
-          onClearAll={handleClearAll}
-        />
-
-        <p className="text-sm text-muted-foreground">
-          {filteredJobs.length}
-          {JOB_LIST_META.resultsSuffix}
-        </p>
-
-        {filteredJobs.length === 0 ? (
-          <EmptyState onReset={handleClearAll} />
-        ) : (
-          <ul className="flex flex-col gap-4">
-            {filteredJobs.map((job) => (
-              <li key={job.id}>
-                <JobCard
-                  job={job}
-                  isBookmarked={Boolean(favorites[job.id])}
-                  onToggleBookmark={handleToggleBookmark}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {filteredJobs.length > 0 && <Pagination />}
-      </div>
-
-      <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-1 lg:self-start">
-        <FilterSidebar filters={filters} onChange={handleFilterChange} />
-
-        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-foreground">
-            {JOB_SIDEBAR_LABELS.recommendedSkillsTitle}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {JOB_SIDEBAR_LABELS.recommendedSkillsDescription}
-          </p>
-          <ul className="mt-4 flex flex-wrap gap-2">
-            {RECOMMENDED_SKILLS.map((skill) => (
-              <li
-                key={skill}
-                className="rounded-full border border-border px-3 py-1.5 text-sm font-medium text-foreground"
-              >
-                {skill}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-foreground">
-            {JOB_SIDEBAR_LABELS.savedJobsTitle}
-          </h2>
-          {savedJobs.length > 0 ? (
-            <ul className="mt-4 flex flex-col divide-y divide-border">
-              {savedJobs.map((job) => (
-                <li key={job.id} className="py-3 first:pt-0 last:pb-0">
-                  <Link
-                    href={`/engineer/jobs/${job.id}`}
-                    className="block min-w-0 rounded-lg transition-colors duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-                  >
-                    <p className="truncate text-sm font-semibold text-foreground">
-                      {job.title}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {job.company}
-                    </p>
-                  </Link>
-                </li>
+          <div className="w-full shrink-0 sm:w-40">
+            <label
+              htmlFor="job-contract-filter"
+              className="mb-1.5 block text-xs font-medium text-muted-foreground"
+            >
+              {FILTER_LABELS.contractTypeLabel}
+            </label>
+            <select
+              id="job-contract-filter"
+              value={contractType}
+              onChange={(event) => setContractType(event.target.value as CompanyContractType | "")}
+              className={SELECT_CLASSNAME}
+            >
+              <option value="">{FILTER_LABELS.contractTypeAllLabel}</option>
+              {CONTRACT_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
-            </ul>
-          ) : (
-            <p className="mt-4 text-sm text-muted-foreground">
-              {JOB_SIDEBAR_LABELS.savedJobsEmptyMessage}
-            </p>
+            </select>
+          </div>
+
+          <div className="w-full shrink-0 sm:w-36">
+            <label
+              htmlFor="job-sort"
+              className="mb-1.5 block text-xs font-medium text-muted-foreground"
+            >
+              {FILTER_LABELS.sortLabel}
+            </label>
+            <select
+              id="job-sort"
+              value={sortOption}
+              onChange={(event) => setSortOption(event.target.value as SortOption)}
+              className={SELECT_CLASSNAME}
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="button"
+            onClick={applyFilters}
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            {FILTER_LABELS.searchLabel}
+          </button>
+
+          {(hasActiveFilters || sortValue !== "newest") && (
+            <button
+              type="button"
+              onClick={handleReset}
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              {FILTER_LABELS.resetLabel}
+            </button>
           )}
         </div>
-
-        <ProfileCompletion />
       </div>
 
-      <FilterDrawer
-        isOpen={isFilterDrawerOpen}
-        onClose={() => setIsFilterDrawerOpen(false)}
-        filters={filters}
-        onChange={handleFilterChange}
-        resultCount={filteredJobs.length}
+      <p className="text-sm text-muted-foreground">
+        {total}
+        {JOB_LIST_META.resultsSuffix}
+      </p>
+
+      {total === 0 ? (
+        hasActiveFilters ? (
+          <EmptyState onReset={handleReset} />
+        ) : (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
+            <p className="text-sm font-semibold text-foreground">{NO_JOBS_STATE_LABELS.title}</p>
+            <p className="text-sm text-muted-foreground">{NO_JOBS_STATE_LABELS.description}</p>
+          </div>
+        )
+      ) : (
+        <ul className="flex flex-col gap-4">
+          {jobs.map((job) => (
+            <li key={job.id}>
+              <JobCard
+                job={job}
+                isBookmarked={favoriteIds.has(job.id)}
+                onToggleBookmark={handleToggleBookmark}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        buildHref={(targetPage) =>
+          buildQueryHref({
+            search: searchValue,
+            contractType: contractTypeValue,
+            sort: sortValue,
+            page: targetPage,
+          })
+        }
       />
+
+      {toastMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 sm:justify-end sm:pr-6"
+        >
+          <div className="flex items-center gap-2 rounded-xl bg-foreground px-4 py-3 text-sm font-medium text-white shadow-lg">
+            {toastMessage}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

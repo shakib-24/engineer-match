@@ -8,19 +8,18 @@ import { ApplicationCard } from "@/components/applications/ApplicationCard";
 import { ApplicationEmptyState } from "@/components/applications/ApplicationEmptyState";
 import {
   APPLICATION_LIST_META,
-  APPLICATION_STATUSES,
-  CONTRACT_TYPE_OPTIONS,
+  APPLICATION_STATUS_OPTIONS,
   EMPTY_STATE_LABELS,
   FILTERED_EMPTY_STATE_LABELS,
   FILTER_LABELS,
   SORT_OPTIONS,
   SUMMARY_CARDS,
   WITHDRAW_DIALOG_LABELS,
-  type Application,
-  type ApplicationStatus,
-  type ContractType,
   type SortOption,
 } from "@/constants/applications";
+import { withdrawApplication } from "@/lib/engineer/applications";
+import { createClient } from "@/lib/supabase/client";
+import type { ApplicationListItem } from "@/lib/engineer/applications";
 
 const SUMMARY_ICON_MAP = {
   send: Send,
@@ -33,68 +32,66 @@ const SELECT_CLASSNAME =
   "h-11 w-full min-w-0 max-w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none";
 
 interface ApplicationListProps {
-  applications: Application[];
+  applications: ApplicationListItem[];
 }
 
 export function ApplicationList({ applications: initialApplications }: ApplicationListProps) {
-  const [applications, setApplications] = useState<Application[]>(initialApplications);
+  const [applications, setApplications] = useState<ApplicationListItem[]>(initialApplications);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">("all");
-  const [companyFilter, setCompanyFilter] = useState<string>("all");
-  const [contractTypeFilter, setContractTypeFilter] = useState<ContractType | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortOption, setSortOption] = useState<SortOption>("newest");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const companyOptions = useMemo(
-    () => Array.from(new Set(applications.map((item) => item.company))).sort(),
-    [applications],
-  );
-
-  function handleWithdraw(id: string) {
-    setApplications((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status: "辞退" } : item)),
-    );
-    setToastMessage(WITHDRAW_DIALOG_LABELS.toastMessage);
+  function showToast(message: string) {
+    setToastMessage(message);
     window.setTimeout(() => setToastMessage(null), 3000);
+  }
+
+  async function handleWithdraw(id: string) {
+    const supabase = createClient();
+    const { data, error } = await withdrawApplication(supabase, id);
+
+    if (error || !data) {
+      console.error("[application-list] withdraw failed:", error);
+      showToast(WITHDRAW_DIALOG_LABELS.errorMessage);
+      return;
+    }
+
+    setApplications((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, status: "withdrawn" } : item)),
+    );
+    showToast(WITHDRAW_DIALOG_LABELS.toastMessage);
   }
 
   function handleResetFilters() {
     setSearchQuery("");
     setStatusFilter("all");
-    setCompanyFilter("all");
-    setContractTypeFilter("all");
   }
 
-  const hasActiveFilters =
-    searchQuery.trim() !== "" ||
-    statusFilter !== "all" ||
-    companyFilter !== "all" ||
-    contractTypeFilter !== "all";
+  const hasActiveFilters = searchQuery.trim() !== "" || statusFilter !== "all";
 
   const visibleApplications = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
     const filtered = applications.filter((item) => {
-      if (query && !item.jobTitle.toLowerCase().includes(query)) return false;
+      if (query && !item.opportunityTitle.toLowerCase().includes(query)) return false;
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
-      if (companyFilter !== "all" && item.company !== companyFilter) return false;
-      if (contractTypeFilter !== "all" && item.contractType !== contractTypeFilter)
-        return false;
       return true;
     });
 
     const sorted = [...filtered].sort((a, b) => {
-      const diff = a.appliedDateISO.localeCompare(b.appliedDateISO);
+      const diff = a.applied_at.localeCompare(b.applied_at);
       return sortOption === "newest" ? -diff : diff;
     });
 
     return sorted;
-  }, [applications, searchQuery, statusFilter, companyFilter, contractTypeFilter, sortOption]);
+  }, [applications, searchQuery, statusFilter, sortOption]);
 
   const summaryCounts = useMemo(() => {
     return SUMMARY_CARDS.map((card) => ({
       ...card,
-      value: applications.filter((item) => card.statuses.includes(item.status)).length,
+      value: applications.filter((item) => (card.statuses as readonly string[]).includes(item.status))
+        .length,
     }));
   }, [applications]);
 
@@ -117,7 +114,6 @@ export function ApplicationList({ applications: initialApplications }: Applicati
             key={card.key}
             label={card.label}
             value={String(card.value)}
-            helper={card.helper}
             icon={SUMMARY_ICON_MAP[card.icon as keyof typeof SUMMARY_ICON_MAP]}
           />
         ))}
@@ -148,7 +144,7 @@ export function ApplicationList({ applications: initialApplications }: Applicati
             </div>
           </div>
 
-          <div className="w-full shrink-0 sm:w-40">
+          <div className="w-full shrink-0 sm:w-44">
             <label
               htmlFor="application-status-filter"
               className="mb-1.5 block text-xs font-medium text-muted-foreground"
@@ -158,61 +154,13 @@ export function ApplicationList({ applications: initialApplications }: Applicati
             <select
               id="application-status-filter"
               value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as ApplicationStatus | "all")
-              }
+              onChange={(event) => setStatusFilter(event.target.value)}
               className={SELECT_CLASSNAME}
             >
               <option value="all">{FILTER_LABELS.statusAllLabel}</option>
-              {APPLICATION_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="w-full shrink-0 sm:w-44">
-            <label
-              htmlFor="application-company-filter"
-              className="mb-1.5 block text-xs font-medium text-muted-foreground"
-            >
-              {FILTER_LABELS.companyLabel}
-            </label>
-            <select
-              id="application-company-filter"
-              value={companyFilter}
-              onChange={(event) => setCompanyFilter(event.target.value)}
-              className={SELECT_CLASSNAME}
-            >
-              <option value="all">{FILTER_LABELS.companyAllLabel}</option>
-              {companyOptions.map((company) => (
-                <option key={company} value={company}>
-                  {company}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="w-full shrink-0 sm:w-36">
-            <label
-              htmlFor="application-contract-filter"
-              className="mb-1.5 block text-xs font-medium text-muted-foreground"
-            >
-              {FILTER_LABELS.contractTypeLabel}
-            </label>
-            <select
-              id="application-contract-filter"
-              value={contractTypeFilter}
-              onChange={(event) =>
-                setContractTypeFilter(event.target.value as ContractType | "all")
-              }
-              className={SELECT_CLASSNAME}
-            >
-              <option value="all">{FILTER_LABELS.contractTypeAllLabel}</option>
-              {CONTRACT_TYPE_OPTIONS.map((type) => (
-                <option key={type} value={type}>
-                  {type}
+              {APPLICATION_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>

@@ -1,0 +1,52 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+/**
+ * public.users.role / .status shape, per 002_users.sql. Not generated from a
+ * Database type (no Supabase codegen has been run for this project), so this
+ * is a minimal hand-written shape for the two columns actually queried here.
+ */
+export interface UserAccount {
+  role: string;
+  status: string;
+}
+
+/** The only status value that may continue past login (chk_users_status in 002_users.sql: ACTIVE / SUSPENDED / WITHDRAWN). */
+export const ACTIVE_STATUS = "ACTIVE";
+
+export async function getUserAccount(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<UserAccount | null> {
+  const { data, error } = await supabase
+    .from("users")
+    .select("role, status")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[auth] failed to load public.users row:", error);
+    return null;
+  }
+
+  return data as UserAccount | null;
+}
+
+/**
+ * Maps a public.users.role value to its dashboard route. Only ENGINEER,
+ * COMPANY, and ADMIN have a route today — confirmed by inspecting
+ * src/app/{engineer,company,admin}; there is no instructor route yet even
+ * though INSTRUCTOR is a valid role. Returns null when there's nowhere to
+ * send the user (INSTRUCTOR, or any unrecognized role).
+ */
+export function getDashboardPathForRole(role: string): string | null {
+  switch (role) {
+    case "ENGINEER":
+      return "/engineer/dashboard";
+    case "COMPANY":
+      return "/company/dashboard";
+    case "ADMIN":
+      return "/admin";
+    default:
+      return null;
+  }
+}

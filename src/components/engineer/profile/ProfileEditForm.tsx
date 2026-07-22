@@ -37,8 +37,7 @@ import {
   EDUCATION_FORM_FIELDS,
   EMPLOYMENT_TYPE_OPTIONS,
   GENDER_OPTIONS,
-  HUMAN_SKILLS,
-  HUMAN_SKILL_OPTIONS,
+  HUMAN_SKILL_EDIT_NOTE,
   ITSS_LEVEL_OPTIONS,
   LANGUAGES,
   LANGUAGE_LEVEL_OPTIONS,
@@ -446,15 +445,6 @@ export function ProfileEditForm() {
       experienceYears: skill.experienceYears,
     })),
   );
-  const humanSkills = useRatedSkillRows(
-    HUMAN_SKILLS.map((skill, index) => ({
-      id: `human-${index}`,
-      name: skill.name,
-      rating: skill.rating,
-    })),
-    "human",
-    HUMAN_SKILL_OPTIONS[0],
-  );
   const businessSkills = useRatedSkillRows(
     BUSINESS_SKILLS.map((skill, index) => ({
       id: `business-${index}`,
@@ -745,16 +735,23 @@ export function ProfileEditForm() {
             onRemove={technicalSkills.remove}
             onChange={technicalSkills.update}
           />
-          <RatedSkillEditor
-            legend={SKILLS_SECTION.humanTitle}
-            legendIcon={Users}
-            addLabel={SKILL_ROW_LABELS.addHumanLabel}
-            options={HUMAN_SKILL_OPTIONS}
-            rows={humanSkills.rows}
-            onAdd={humanSkills.add}
-            onRemove={humanSkills.remove}
-            onChange={humanSkills.update}
-          />
+          <fieldset className="flex flex-col gap-3">
+            <legend className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Users className="h-4 w-4 text-primary" aria-hidden="true" />
+              {SKILLS_SECTION.humanTitle}
+            </legend>
+            <div className="rounded-xl border border-dashed border-border p-4">
+              <p className="text-sm text-muted-foreground">
+                {HUMAN_SKILL_EDIT_NOTE.description}
+              </p>
+              <Link
+                href={HUMAN_SKILL_EDIT_NOTE.ctaHref}
+                className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
+                {HUMAN_SKILL_EDIT_NOTE.ctaLabel}
+              </Link>
+            </div>
+          </fieldset>
           <RatedSkillEditor
             legend={SKILLS_SECTION.businessTitle}
             legendIcon={BrainCircuit}

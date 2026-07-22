@@ -1,19 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SquarePen } from "lucide-react";
 import { DeleteJobDialog } from "@/components/company/DeleteJobDialog";
+import { createClient } from "@/lib/supabase/client";
+import { setCompanyOpportunityStatus } from "@/lib/company/jobs";
 import {
   CLOSE_RECRUITMENT_DIALOG_LABELS,
   JOB_DETAIL_META,
   JOB_STATUS_BADGE_STYLES,
-  type JobPostingStatus,
+  JOB_STATUS_LABEL,
+  type JobStatus,
 } from "@/constants/company-jobs";
 import { cn } from "@/lib/utils";
 
 interface JobStatusBadgeProps {
-  status: JobPostingStatus;
+  status: JobStatus;
   className?: string;
 }
 
@@ -26,33 +30,65 @@ export function JobStatusBadge({ status, className }: JobStatusBadgeProps) {
         className,
       )}
     >
-      {status}
+      {JOB_STATUS_LABEL[status]}
     </span>
   );
 }
 
 interface JobDetailActionsProps {
   jobId: string;
-  initialStatus: JobPostingStatus;
+  initialStatus: JobStatus;
 }
 
 /**
- * Self-contained status badge + 編集/募集終了 action bar for the job detail
- * page. Owns its own (unpersisted) status so closing recruitment is
- * reflected immediately without needing a server round-trip.
+ * Status badge + 編集/募集終了 action bar for the job detail page. 募集終了
+ * is a real status='closed' update (opportunities has no owner-DELETE RLS
+ * policy — see src/lib/company/jobs.ts — so this is the only self-service
+ * removal action available).
  */
 export function JobDetailActions({ jobId, initialStatus }: JobDetailActionsProps) {
-  const [status, setStatus] = useState<JobPostingStatus>(initialStatus);
+  const router = useRouter();
+  const [status, setStatus] = useState<JobStatus>(initialStatus);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const canClose = status === "募集中" || status === "下書き";
+  const canClose = status === "published" || status === "draft";
 
-  function handleConfirmClose() {
-    setStatus("募集終了");
-    setIsDialogOpen(false);
-    setToastMessage(CLOSE_RECRUITMENT_DIALOG_LABELS.toastMessage);
-    window.setTimeout(() => setToastMessage(null), 3000);
+  async function handleConfirmClose() {
+    if (isClosing) return;
+    setIsClosing(true);
+
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setToastMessage(CLOSE_RECRUITMENT_DIALOG_LABELS.errorMessage);
+        return;
+      }
+
+      const { error } = await setCompanyOpportunityStatus(supabase, user.id, jobId, "closed");
+
+      if (error) {
+        console.error("[job-detail] close recruitment failed:", error);
+        setToastMessage(CLOSE_RECRUITMENT_DIALOG_LABELS.errorMessage);
+        return;
+      }
+
+      setStatus("closed");
+      setIsDialogOpen(false);
+      setToastMessage(CLOSE_RECRUITMENT_DIALOG_LABELS.toastMessage);
+      router.refresh();
+    } catch (err) {
+      console.error("[job-detail] unexpected close recruitment error:", err);
+      setToastMessage(CLOSE_RECRUITMENT_DIALOG_LABELS.errorMessage);
+    } finally {
+      setIsClosing(false);
+      window.setTimeout(() => setToastMessage(null), 3000);
+    }
   }
 
   return (

@@ -1,729 +1,735 @@
 "use client";
 
-import { useRef, useState, type SubmitEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Briefcase,
-  ClipboardList,
-  DollarSign,
-  Eye,
-  Gift,
-  Info,
-  Plus,
-  Sparkles,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Briefcase, ClipboardList, Loader2 } from "lucide-react";
 import { ProfileSection } from "@/components/engineer/profile/ProfileSection";
-import { EmploymentConditionsFields } from "@/components/company/EmploymentConditionsFields";
-import { EmploymentConditionsSummary } from "@/components/jobs/EmploymentConditionsSummary";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { createClient } from "@/lib/supabase/client";
 import {
-  BASIC_INFO_FIELDS,
-  BENEFITS_FIELDS,
+  createCompanyOpportunity,
+  type CompanyContractType,
+  type JobStatus,
+  type OpportunityDetail,
+  type OpportunityEmployment,
+  type OpportunityInput,
+  type Skill,
+} from "@/lib/company/jobs";
+import {
   CONTRACT_TYPE_OPTIONS,
   CREATE_JOB_META,
-  FORM_BUTTON_LABELS,
-  FORM_SECTION_LABELS,
-  ITSS_LEVEL_OPTIONS,
-  JOB_DESCRIPTION_FIELDS,
-  LOCATION_OPTIONS,
-  PREVIEW_PANEL_LABELS,
-  PUBLISH_SETTINGS_FIELDS,
-  SALARY_FIELDS,
-  SKILLS_FIELDS,
-  WORK_CONDITIONS_FIELDS,
+  JOB_FORM_BUTTON_LABELS,
+  JOB_FORM_ERRORS,
+  JOB_FORM_FIELDS,
+  JOB_FORM_SECTION_LABELS,
+  JOB_STATUS_OPTIONS,
   WORK_STYLE_OPTIONS,
-  type CompanyJob,
-  type ContractType,
-  type JobPostingStatus,
-  type WorkStyle,
 } from "@/constants/company-jobs";
-import { createEmptyEmploymentConditions, type EmploymentConditions } from "@/constants/employment";
-import { validateEmploymentConditions } from "@/lib/employment-validation";
 
 const SELECT_CLASS =
   "h-9 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
-export interface WorkConditionRow {
-  id: string;
-  label: string;
-  value: string;
-}
-
 export interface JobFormState {
   title: string;
-  category: string;
-  contractType: ContractType;
-  location: string;
-  workStyle: WorkStyle;
-  itssLevel: number;
-  experienceYearsMin: number;
   description: string;
-  responsibilities: string;
-  requirements: string;
-  requiredSkills: string;
-  preferredSkills: string;
-  workConditions: WorkConditionRow[];
-  salaryLabel: string;
-  salaryMin: number;
-  salaryMax: number;
-  benefits: string;
-  status: JobPostingStatus;
-  isPublic: boolean;
-  employmentConditions: EmploymentConditions;
+  contractType: CompanyContractType;
+  status: JobStatus;
+  workStyle: string;
+  salaryMin: string;
+  salaryMax: string;
+  deadline: string;
+  budget: string;
+  headcount: string;
+  projectIsOnline: string;
+  periodStart: string;
+  periodEnd: string;
+  timeStart: string;
+  timeEnd: string;
+  hourlyRate: string;
+  hourlyIsOnline: string;
+  requiredSkillIds: string[];
 }
 
-export function buildInitialFormState(job?: CompanyJob): JobFormState {
-  if (!job) {
+export function buildInitialFormState(detail?: OpportunityDetail | null): JobFormState {
+  if (!detail) {
     return {
       title: "",
-      category: "",
-      contractType: CONTRACT_TYPE_OPTIONS[0],
-      location: LOCATION_OPTIONS[0],
-      workStyle: WORK_STYLE_OPTIONS[0],
-      itssLevel: ITSS_LEVEL_OPTIONS[0],
-      experienceYearsMin: 0,
       description: "",
-      responsibilities: "",
-      requirements: "",
-      requiredSkills: "",
-      preferredSkills: "",
-      workConditions: [{ id: "cond-1", label: "", value: "" }],
-      salaryLabel: "",
-      salaryMin: 300,
-      salaryMax: 600,
-      benefits: "",
-      status: "下書き",
-      isPublic: false,
-      employmentConditions: createEmptyEmploymentConditions(),
+      contractType: "employment",
+      status: "draft",
+      workStyle: "REMOTE",
+      salaryMin: "",
+      salaryMax: "",
+      deadline: "",
+      budget: "",
+      headcount: "1",
+      projectIsOnline: "true",
+      periodStart: "",
+      periodEnd: "",
+      timeStart: "",
+      timeEnd: "",
+      hourlyRate: "",
+      hourlyIsOnline: "true",
+      requiredSkillIds: [],
     };
   }
 
+  const { opportunity, employment, project, hourly, requiredSkillIds } = detail;
+
   return {
-    title: job.title,
-    category: job.category,
-    contractType: job.contractType,
-    location: job.location,
-    workStyle: job.workStyle,
-    itssLevel: job.itssLevel,
-    experienceYearsMin: job.experienceYearsMin,
-    description: job.description,
-    responsibilities: job.responsibilities.join("\n"),
-    requirements: job.requirements.join("\n"),
-    requiredSkills: job.requiredSkills.join("\n"),
-    preferredSkills: job.preferredSkills.join("\n"),
-    workConditions: job.workConditions.map((condition, index) => ({
-      id: `cond-${index}`,
-      label: condition.label,
-      value: condition.value,
-    })),
-    salaryLabel: job.salaryLabel,
-    salaryMin: job.salaryMinManYen,
-    salaryMax: job.salaryMaxManYen,
-    benefits: job.benefits.join("\n"),
-    status: job.status,
-    isPublic: job.isPublic,
-    employmentConditions: job.employmentConditions ?? createEmptyEmploymentConditions(),
+    title: opportunity.title,
+    description: opportunity.description,
+    contractType: opportunity.contract_type as CompanyContractType,
+    status: opportunity.status,
+    workStyle: employment?.work_style ?? "REMOTE",
+    salaryMin: employment ? String(employment.salary_min) : "",
+    salaryMax: employment ? String(employment.salary_max) : "",
+    deadline: project?.deadline ?? "",
+    budget: project ? String(project.budget) : "",
+    headcount: project
+      ? String(project.headcount)
+      : hourly
+        ? String(hourly.headcount)
+        : "1",
+    projectIsOnline: project ? String(project.is_online) : "true",
+    periodStart: hourly?.period_start ?? "",
+    periodEnd: hourly?.period_end ?? "",
+    timeStart: hourly?.time_start?.slice(0, 5) ?? "",
+    timeEnd: hourly?.time_end?.slice(0, 5) ?? "",
+    hourlyRate: hourly ? String(hourly.hourly_rate) : "",
+    hourlyIsOnline: hourly ? String(hourly.is_online) : "true",
+    requiredSkillIds,
   };
+}
+
+export function validateJobForm(state: JobFormState): string | null {
+  const title = state.title.trim();
+  if (!title) return JOB_FORM_ERRORS.titleRequired;
+  if (title.length > 100) return JOB_FORM_ERRORS.titleTooLong;
+  if (!state.description.trim()) return JOB_FORM_ERRORS.descriptionRequired;
+
+  if (state.contractType === "employment") {
+    if (!state.workStyle) return JOB_FORM_ERRORS.workStyleRequired;
+    if (!state.salaryMin.trim() || !state.salaryMax.trim()) {
+      return JOB_FORM_ERRORS.salaryRequired;
+    }
+    const min = Number(state.salaryMin);
+    const max = Number(state.salaryMax);
+    if (
+      !Number.isInteger(min) ||
+      !Number.isInteger(max) ||
+      min < 1 ||
+      min > 9999 ||
+      max < 1 ||
+      max > 9999
+    ) {
+      return JOB_FORM_ERRORS.salaryOutOfRange;
+    }
+    if (min > max) return JOB_FORM_ERRORS.salaryOrderInvalid;
+    return null;
+  }
+
+  if (state.contractType === "project") {
+    if (!state.deadline) return JOB_FORM_ERRORS.deadlineRequired;
+    if (!state.budget.trim()) return JOB_FORM_ERRORS.budgetRequired;
+    const budget = Number(state.budget);
+    if (!Number.isInteger(budget) || budget < 1) return JOB_FORM_ERRORS.budgetInvalid;
+    const headcount = Number(state.headcount);
+    if (!Number.isInteger(headcount) || headcount < 1) {
+      return JOB_FORM_ERRORS.headcountInvalid;
+    }
+    return null;
+  }
+
+  // hourly
+  if (!state.periodStart || !state.periodEnd) return JOB_FORM_ERRORS.periodRequired;
+  if (state.periodStart > state.periodEnd) return JOB_FORM_ERRORS.periodInvalid;
+  if (!state.timeStart || !state.timeEnd) return JOB_FORM_ERRORS.timeRequired;
+  if (state.timeStart >= state.timeEnd) return JOB_FORM_ERRORS.timeInvalid;
+  if (!state.hourlyRate.trim()) return JOB_FORM_ERRORS.hourlyRateRequired;
+  const rate = Number(state.hourlyRate);
+  if (!Number.isInteger(rate) || rate < 1) return JOB_FORM_ERRORS.hourlyRateInvalid;
+  const headcount = Number(state.headcount);
+  if (!Number.isInteger(headcount) || headcount < 1) {
+    return JOB_FORM_ERRORS.headcountInvalid;
+  }
+  return null;
+}
+
+export function buildOpportunityInput(state: JobFormState): OpportunityInput {
+  return {
+    title: state.title.trim(),
+    description: state.description.trim(),
+    contract_type: state.contractType,
+    status: state.status,
+    employment:
+      state.contractType === "employment"
+        ? {
+            work_style: state.workStyle as OpportunityEmployment["work_style"],
+            salary_min: Number(state.salaryMin),
+            salary_max: Number(state.salaryMax),
+          }
+        : null,
+    project:
+      state.contractType === "project"
+        ? {
+            deadline: state.deadline,
+            budget: Number(state.budget),
+            headcount: Number(state.headcount),
+            is_online: state.projectIsOnline === "true",
+          }
+        : null,
+    hourly:
+      state.contractType === "hourly"
+        ? {
+            period_start: state.periodStart,
+            period_end: state.periodEnd,
+            time_start: state.timeStart,
+            time_end: state.timeEnd,
+            hourly_rate: Number(state.hourlyRate),
+            is_online: state.hourlyIsOnline === "true",
+            headcount: Number(state.headcount),
+          }
+        : null,
+    requiredSkillIds: state.requiredSkillIds,
+  };
+}
+
+interface RequiredSkillsPickerProps {
+  skills: Skill[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  idPrefix: string;
+}
+
+function RequiredSkillsPicker({
+  skills,
+  selectedIds,
+  onChange,
+  idPrefix,
+}: RequiredSkillsPickerProps) {
+  const [query, setQuery] = useState("");
+  const filtered = skills.filter((skill) =>
+    skill.name.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+
+  function toggle(id: string) {
+    onChange(
+      selectedIds.includes(id)
+        ? selectedIds.filter((existing) => existing !== id)
+        : [...selectedIds, id],
+    );
+  }
+
+  if (skills.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {JOB_FORM_FIELDS.requiredSkills.emptyMessage}
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Input
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder={JOB_FORM_FIELDS.requiredSkills.searchPlaceholder}
+      />
+      <div className="max-h-64 overflow-y-auto rounded-xl border border-border p-3">
+        <div className="flex flex-col gap-2.5">
+          {filtered.map((skill) => {
+            const checkboxId = `${idPrefix}-skill-${skill.id}`;
+            return (
+              <label
+                key={skill.id}
+                htmlFor={checkboxId}
+                className="flex items-center gap-2 text-sm text-foreground"
+              >
+                <Checkbox
+                  id={checkboxId}
+                  checked={selectedIds.includes(skill.id)}
+                  onCheckedChange={() => toggle(skill.id)}
+                />
+                {skill.name}
+              </label>
+            );
+          })}
+        </div>
+      </div>
+      {selectedIds.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {selectedIds.length}
+          {JOB_FORM_FIELDS.requiredSkills.selectedCountSuffix}
+        </p>
+      )}
+    </div>
+  );
 }
 
 interface JobFormFieldsProps {
   state: JobFormState;
   onChange: (patch: Partial<JobFormState>) => void;
+  skills: Skill[];
   idPrefix: string;
-  employmentErrors?: Record<string, string>;
+  isContractTypeLocked: boolean;
 }
 
 export function JobFormFields({
   state,
   onChange,
+  skills,
   idPrefix,
-  employmentErrors = {},
+  isContractTypeLocked,
 }: JobFormFieldsProps) {
-  const workConditionCounter = useRef(state.workConditions.length);
-
-  function addWorkCondition() {
-    workConditionCounter.current += 1;
-    onChange({
-      workConditions: [
-        ...state.workConditions,
-        { id: `${idPrefix}-cond-new-${workConditionCounter.current}`, label: "", value: "" },
-      ],
-    });
-  }
-
-  function removeWorkCondition(id: string) {
-    onChange({ workConditions: state.workConditions.filter((row) => row.id !== id) });
-  }
-
-  function updateWorkCondition(id: string, patch: Partial<WorkConditionRow>) {
-    onChange({
-      workConditions: state.workConditions.map((row) =>
-        row.id === id ? { ...row, ...patch } : row,
-      ),
-    });
-  }
-
   return (
-    <div className="flex flex-col gap-6">
-      <ProfileSection title={FORM_SECTION_LABELS.basicInfo} icon={Info}>
+    <>
+      <ProfileSection icon={Briefcase} title={JOB_FORM_SECTION_LABELS.basicInfo}>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <Label htmlFor={`${idPrefix}-title`}>{BASIC_INFO_FIELDS.title.label}</Label>
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <Label htmlFor={`${idPrefix}-title`}>{JOB_FORM_FIELDS.title.label}</Label>
             <Input
               id={`${idPrefix}-title`}
-              type="text"
               value={state.title}
-              placeholder={BASIC_INFO_FIELDS.title.placeholder}
               onChange={(event) => onChange({ title: event.target.value })}
-              className="h-9"
+              placeholder={JOB_FORM_FIELDS.title.placeholder}
+              maxLength={100}
+              required
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-category`}>
-              {BASIC_INFO_FIELDS.category.label}
-            </Label>
-            <Input
-              id={`${idPrefix}-category`}
-              type="text"
-              value={state.category}
-              placeholder={BASIC_INFO_FIELDS.category.placeholder}
-              onChange={(event) => onChange({ category: event.target.value })}
-              className="h-9"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-contract-type`}>
-              {BASIC_INFO_FIELDS.contractType.label}
-            </Label>
-            <select
-              id={`${idPrefix}-contract-type`}
-              value={state.contractType}
-              onChange={(event) =>
-                onChange({ contractType: event.target.value as ContractType })
-              }
-              className={SELECT_CLASS}
-            >
-              {CONTRACT_TYPE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-location`}>
-              {BASIC_INFO_FIELDS.location.label}
-            </Label>
-            <select
-              id={`${idPrefix}-location`}
-              value={state.location}
-              onChange={(event) => onChange({ location: event.target.value })}
-              className={SELECT_CLASS}
-            >
-              {LOCATION_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-work-style`}>
-              {BASIC_INFO_FIELDS.workStyle.label}
-            </Label>
-            <select
-              id={`${idPrefix}-work-style`}
-              value={state.workStyle}
-              onChange={(event) =>
-                onChange({ workStyle: event.target.value as WorkStyle })
-              }
-              className={SELECT_CLASS}
-            >
-              {WORK_STYLE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-itss-level`}>
-              {BASIC_INFO_FIELDS.itssLevel.label}
-            </Label>
-            <select
-              id={`${idPrefix}-itss-level`}
-              value={state.itssLevel}
-              onChange={(event) => onChange({ itssLevel: Number(event.target.value) })}
-              className={SELECT_CLASS}
-            >
-              {ITSS_LEVEL_OPTIONS.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-experience-years`}>
-              {BASIC_INFO_FIELDS.experienceYearsMin.label}
-            </Label>
-            <Input
-              id={`${idPrefix}-experience-years`}
-              type="number"
-              min={0}
-              max={30}
-              value={state.experienceYearsMin}
-              onChange={(event) =>
-                onChange({ experienceYearsMin: Number(event.target.value) })
-              }
-              className="h-9"
-            />
-          </div>
-        </div>
-      </ProfileSection>
 
-      <ProfileSection title={FORM_SECTION_LABELS.jobDescription} icon={Briefcase}>
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2 sm:col-span-2">
             <Label htmlFor={`${idPrefix}-description`}>
-              {JOB_DESCRIPTION_FIELDS.description.label}
+              {JOB_FORM_FIELDS.description.label}
             </Label>
             <Textarea
               id={`${idPrefix}-description`}
               value={state.description}
-              placeholder={JOB_DESCRIPTION_FIELDS.description.placeholder}
               onChange={(event) => onChange({ description: event.target.value })}
-              rows={4}
+              placeholder={JOB_FORM_FIELDS.description.placeholder}
+              rows={5}
+              required
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-responsibilities`}>
-              {JOB_DESCRIPTION_FIELDS.responsibilities.label}
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={`${idPrefix}-contract-type`}>
+              {JOB_FORM_FIELDS.contractType.label}
             </Label>
-            <Textarea
-              id={`${idPrefix}-responsibilities`}
-              value={state.responsibilities}
-              placeholder={JOB_DESCRIPTION_FIELDS.responsibilities.placeholder}
-              onChange={(event) => onChange({ responsibilities: event.target.value })}
-              rows={4}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-requirements`}>
-              {JOB_DESCRIPTION_FIELDS.requirements.label}
-            </Label>
-            <Textarea
-              id={`${idPrefix}-requirements`}
-              value={state.requirements}
-              placeholder={JOB_DESCRIPTION_FIELDS.requirements.placeholder}
-              onChange={(event) => onChange({ requirements: event.target.value })}
-              rows={4}
-            />
-          </div>
-        </div>
-      </ProfileSection>
-
-      {state.contractType === "就職" && (
-        <EmploymentConditionsFields
-          conditions={state.employmentConditions}
-          onChange={(patch) =>
-            onChange({ employmentConditions: { ...state.employmentConditions, ...patch } })
-          }
-          idPrefix={idPrefix}
-          errors={employmentErrors}
-        />
-      )}
-
-      <ProfileSection title={FORM_SECTION_LABELS.requiredSkills} icon={ClipboardList}>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${idPrefix}-required-skills`}>
-            {SKILLS_FIELDS.requiredSkills.label}
-          </Label>
-          <Textarea
-            id={`${idPrefix}-required-skills`}
-            value={state.requiredSkills}
-            placeholder={SKILLS_FIELDS.requiredSkills.placeholder}
-            onChange={(event) => onChange({ requiredSkills: event.target.value })}
-            rows={4}
-          />
-        </div>
-      </ProfileSection>
-
-      <ProfileSection title={FORM_SECTION_LABELS.preferredSkills} icon={Sparkles}>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${idPrefix}-preferred-skills`}>
-            {SKILLS_FIELDS.preferredSkills.label}
-          </Label>
-          <Textarea
-            id={`${idPrefix}-preferred-skills`}
-            value={state.preferredSkills}
-            placeholder={SKILLS_FIELDS.preferredSkills.placeholder}
-            onChange={(event) => onChange({ preferredSkills: event.target.value })}
-            rows={4}
-          />
-        </div>
-      </ProfileSection>
-
-      <ProfileSection title={FORM_SECTION_LABELS.workConditions} icon={ClipboardList}>
-        <fieldset className="flex flex-col gap-3">
-          <legend className="sr-only">{WORK_CONDITIONS_FIELDS.legend}</legend>
-          {state.workConditions.map((row) => (
-            <div
-              key={row.id}
-              className="flex flex-wrap items-end gap-3 rounded-xl border border-border p-3"
-            >
-              <div className="flex min-w-40 flex-1 flex-col gap-1.5">
-                <Label htmlFor={`${row.id}-label`}>項目名</Label>
+            {isContractTypeLocked ? (
+              <>
                 <Input
-                  id={`${row.id}-label`}
-                  type="text"
-                  value={row.label}
-                  placeholder={WORK_CONDITIONS_FIELDS.labelPlaceholder}
-                  onChange={(event) =>
-                    updateWorkCondition(row.id, { label: event.target.value })
+                  id={`${idPrefix}-contract-type`}
+                  value={
+                    CONTRACT_TYPE_OPTIONS.find((option) => option.value === state.contractType)
+                      ?.label ?? state.contractType
                   }
-                  className="h-9"
+                  disabled
                 />
-              </div>
-              <div className="flex min-w-40 flex-[2] flex-col gap-1.5">
-                <Label htmlFor={`${row.id}-value`}>内容</Label>
-                <Input
-                  id={`${row.id}-value`}
-                  type="text"
-                  value={row.value}
-                  placeholder={WORK_CONDITIONS_FIELDS.valuePlaceholder}
-                  onChange={(event) =>
-                    updateWorkCondition(row.id, { value: event.target.value })
-                  }
-                  className="h-9"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => removeWorkCondition(row.id)}
-                aria-label={`${WORK_CONDITIONS_FIELDS.removeLabel}：${row.label || row.id}`}
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+                <p className="text-xs text-muted-foreground">
+                  {JOB_FORM_FIELDS.contractTypeLockedNote}
+                </p>
+              </>
+            ) : (
+              <select
+                id={`${idPrefix}-contract-type`}
+                value={state.contractType}
+                onChange={(event) =>
+                  onChange({ contractType: event.target.value as CompanyContractType })
+                }
+                className={SELECT_CLASS}
               >
-                <Trash2 className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addWorkCondition}
-            className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-primary transition-colors duration-200 hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-            {WORK_CONDITIONS_FIELDS.addLabel}
-          </button>
-        </fieldset>
-      </ProfileSection>
-
-      <ProfileSection title={FORM_SECTION_LABELS.salary} icon={DollarSign}>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <Label htmlFor={`${idPrefix}-salary-label`}>
-              {SALARY_FIELDS.salaryLabel.label}
-            </Label>
-            <Input
-              id={`${idPrefix}-salary-label`}
-              type="text"
-              value={state.salaryLabel}
-              placeholder={SALARY_FIELDS.salaryLabel.placeholder}
-              onChange={(event) => onChange({ salaryLabel: event.target.value })}
-              className="h-9"
-            />
+                {CONTRACT_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-salary-min`}>
-              {SALARY_FIELDS.salaryMin.label}
-            </Label>
-            <Input
-              id={`${idPrefix}-salary-min`}
-              type="number"
-              min={0}
-              value={state.salaryMin}
-              onChange={(event) => onChange({ salaryMin: Number(event.target.value) })}
-              className="h-9"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${idPrefix}-salary-max`}>
-              {SALARY_FIELDS.salaryMax.label}
-            </Label>
-            <Input
-              id={`${idPrefix}-salary-max`}
-              type="number"
-              min={0}
-              value={state.salaryMax}
-              onChange={(event) => onChange({ salaryMax: Number(event.target.value) })}
-              className="h-9"
-            />
-          </div>
-        </div>
-      </ProfileSection>
 
-      <ProfileSection title={FORM_SECTION_LABELS.benefits} icon={Gift}>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${idPrefix}-benefits`}>{BENEFITS_FIELDS.benefits.label}</Label>
-          <Textarea
-            id={`${idPrefix}-benefits`}
-            value={state.benefits}
-            placeholder={BENEFITS_FIELDS.benefits.placeholder}
-            onChange={(event) => onChange({ benefits: event.target.value })}
-            rows={4}
-          />
-        </div>
-      </ProfileSection>
-
-      <ProfileSection title={FORM_SECTION_LABELS.publishSettings} icon={Eye}>
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
-          <div className="flex w-full flex-col gap-1.5 sm:w-56">
-            <Label htmlFor={`${idPrefix}-status`}>
-              {PUBLISH_SETTINGS_FIELDS.status.label}
-            </Label>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={`${idPrefix}-status`}>{JOB_FORM_FIELDS.status.label}</Label>
             <select
               id={`${idPrefix}-status`}
               value={state.status}
-              onChange={(event) =>
-                onChange({ status: event.target.value as JobPostingStatus })
-              }
+              onChange={(event) => onChange({ status: event.target.value as JobStatus })}
               className={SELECT_CLASS}
             >
-              <option value="募集中">募集中</option>
-              <option value="下書き">下書き</option>
-              <option value="募集終了">募集終了</option>
+              {JOB_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
-          <label className="flex h-9 w-fit cursor-pointer items-center gap-2 text-sm text-foreground">
-            <Checkbox
-              checked={state.isPublic}
-              onCheckedChange={(checked) => onChange({ isPublic: checked })}
-            />
-            {PUBLISH_SETTINGS_FIELDS.isPublic.label}
-          </label>
         </div>
       </ProfileSection>
-    </div>
-  );
-}
 
-interface JobFormActionsProps {
-  state: JobFormState;
-  onSave: () => void;
-  onSaveDraft: () => void;
-  showPreview: boolean;
-  onTogglePreview: () => void;
-  savedMessage: string | null;
-  onDismissSavedMessage: () => void;
-  demoNote: string;
-  cancelHref: string;
-}
-
-export function JobFormActions({
-  state,
-  onSave,
-  onSaveDraft,
-  showPreview,
-  onTogglePreview,
-  savedMessage,
-  onDismissSavedMessage,
-  demoNote,
-  cancelHref,
-}: JobFormActionsProps) {
-  return (
-    <>
-      {showPreview && (
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-base font-semibold text-foreground">
-                {PREVIEW_PANEL_LABELS.title}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {PREVIEW_PANEL_LABELS.description}
-              </p>
+      {state.contractType === "employment" && (
+        <ProfileSection
+          icon={ClipboardList}
+          title={JOB_FORM_SECTION_LABELS.employmentDetails}
+        >
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-work-style`}>
+                {JOB_FORM_FIELDS.workStyle.label}
+              </Label>
+              <select
+                id={`${idPrefix}-work-style`}
+                value={state.workStyle}
+                onChange={(event) => onChange({ workStyle: event.target.value })}
+                className={SELECT_CLASS}
+              >
+                {WORK_STYLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
-            <button
-              type="button"
-              onClick={onTogglePreview}
-              aria-label={PREVIEW_PANEL_LABELS.closeLabel}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
+            <div />
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-salary-min`}>
+                {JOB_FORM_FIELDS.salaryMin.label}
+              </Label>
+              <Input
+                id={`${idPrefix}-salary-min`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={9999}
+                value={state.salaryMin}
+                onChange={(event) => onChange({ salaryMin: event.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-salary-max`}>
+                {JOB_FORM_FIELDS.salaryMax.label}
+              </Label>
+              <Input
+                id={`${idPrefix}-salary-max`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={9999}
+                value={state.salaryMax}
+                onChange={(event) => onChange({ salaryMax: event.target.value })}
+              />
+            </div>
           </div>
-          <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <dt className="text-xs text-muted-foreground">
-                {BASIC_INFO_FIELDS.title.label}
-              </dt>
-              <dd className="text-sm font-semibold text-foreground">
-                {state.title || "（未入力）"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">
-                {BASIC_INFO_FIELDS.contractType.label}
-              </dt>
-              <dd className="text-sm font-semibold text-foreground">
-                {state.contractType}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">
-                {SALARY_FIELDS.salaryLabel.label}
-              </dt>
-              <dd className="text-sm font-semibold text-foreground">
-                {state.salaryLabel || "（未入力）"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">
-                {PUBLISH_SETTINGS_FIELDS.status.label}
-              </dt>
-              <dd className="text-sm font-semibold text-foreground">{state.status}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-xs text-muted-foreground">
-                {SKILLS_FIELDS.requiredSkills.label}
-              </dt>
-              <dd className="text-sm text-foreground">
-                {state.requiredSkills
-                  .split("\n")
-                  .filter(Boolean)
-                  .join(" / ") || "（未入力）"}
-              </dd>
-            </div>
-          </dl>
-          {state.contractType === "就職" && (
-            <div className="mt-4">
-              <EmploymentConditionsSummary conditions={state.employmentConditions} />
-            </div>
-          )}
-        </div>
+        </ProfileSection>
       )}
 
-      <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6 shadow-sm">
-        {savedMessage && (
-          <div className="flex items-center justify-between gap-4 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-            <span>{savedMessage}</span>
-            <button
-              type="button"
-              onClick={onDismissSavedMessage}
-              aria-label="保存メッセージを閉じる"
-              className="shrink-0 rounded-lg p-1 transition-colors duration-200 hover:bg-green-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
+      {state.contractType === "project" && (
+        <ProfileSection icon={ClipboardList} title={JOB_FORM_SECTION_LABELS.projectDetails}>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-deadline`}>{JOB_FORM_FIELDS.deadline.label}</Label>
+              <Input
+                id={`${idPrefix}-deadline`}
+                type="date"
+                value={state.deadline}
+                onChange={(event) => onChange({ deadline: event.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-budget`}>{JOB_FORM_FIELDS.budget.label}</Label>
+              <Input
+                id={`${idPrefix}-budget`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={state.budget}
+                onChange={(event) => onChange({ budget: event.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-headcount`}>
+                {JOB_FORM_FIELDS.headcount.label}
+              </Label>
+              <Input
+                id={`${idPrefix}-headcount`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={state.headcount}
+                onChange={(event) => onChange({ headcount: event.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-is-online`}>
+                {JOB_FORM_FIELDS.isOnlineProject.label}
+              </Label>
+              <select
+                id={`${idPrefix}-is-online`}
+                value={state.projectIsOnline}
+                onChange={(event) => onChange({ projectIsOnline: event.target.value })}
+                className={SELECT_CLASS}
+              >
+                <option value="true">{JOB_FORM_FIELDS.isOnlineYes}</option>
+                <option value="false">{JOB_FORM_FIELDS.isOnlineNo}</option>
+              </select>
+            </div>
           </div>
-        )}
-        <p className="text-xs text-muted-foreground">{demoNote}</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={onSave}
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            {FORM_BUTTON_LABELS.save}
-          </button>
-          <button
-            type="button"
-            onClick={onSaveDraft}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-5 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            {FORM_BUTTON_LABELS.saveDraft}
-          </button>
-          <button
-            type="button"
-            onClick={onTogglePreview}
-            aria-pressed={showPreview}
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-5 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            <Eye className="h-4 w-4" aria-hidden="true" />
-            {FORM_BUTTON_LABELS.preview}
-          </button>
-          <Link
-            href={cancelHref}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-5 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            {FORM_BUTTON_LABELS.cancel}
-          </Link>
-        </div>
-      </div>
+        </ProfileSection>
+      )}
+
+      {state.contractType === "hourly" && (
+        <ProfileSection icon={ClipboardList} title={JOB_FORM_SECTION_LABELS.hourlyDetails}>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-period-start`}>
+                {JOB_FORM_FIELDS.periodStart.label}
+              </Label>
+              <Input
+                id={`${idPrefix}-period-start`}
+                type="date"
+                value={state.periodStart}
+                onChange={(event) => onChange({ periodStart: event.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-period-end`}>
+                {JOB_FORM_FIELDS.periodEnd.label}
+              </Label>
+              <Input
+                id={`${idPrefix}-period-end`}
+                type="date"
+                value={state.periodEnd}
+                onChange={(event) => onChange({ periodEnd: event.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-time-start`}>
+                {JOB_FORM_FIELDS.timeStart.label}
+              </Label>
+              <Input
+                id={`${idPrefix}-time-start`}
+                type="time"
+                value={state.timeStart}
+                onChange={(event) => onChange({ timeStart: event.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-time-end`}>{JOB_FORM_FIELDS.timeEnd.label}</Label>
+              <Input
+                id={`${idPrefix}-time-end`}
+                type="time"
+                value={state.timeEnd}
+                onChange={(event) => onChange({ timeEnd: event.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-hourly-rate`}>
+                {JOB_FORM_FIELDS.hourlyRate.label}
+              </Label>
+              <Input
+                id={`${idPrefix}-hourly-rate`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={state.hourlyRate}
+                onChange={(event) => onChange({ hourlyRate: event.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-hourly-headcount`}>
+                {JOB_FORM_FIELDS.headcount.label}
+              </Label>
+              <Input
+                id={`${idPrefix}-hourly-headcount`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={state.headcount}
+                onChange={(event) => onChange({ headcount: event.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${idPrefix}-hourly-is-online`}>
+                {JOB_FORM_FIELDS.isOnlineProject.label}
+              </Label>
+              <select
+                id={`${idPrefix}-hourly-is-online`}
+                value={state.hourlyIsOnline}
+                onChange={(event) => onChange({ hourlyIsOnline: event.target.value })}
+                className={SELECT_CLASS}
+              >
+                <option value="true">{JOB_FORM_FIELDS.isOnlineYes}</option>
+                <option value="false">{JOB_FORM_FIELDS.isOnlineNo}</option>
+              </select>
+            </div>
+          </div>
+        </ProfileSection>
+      )}
+
+      <ProfileSection title={JOB_FORM_SECTION_LABELS.requiredSkills}>
+        <RequiredSkillsPicker
+          skills={skills}
+          selectedIds={state.requiredSkillIds}
+          onChange={(ids) => onChange({ requiredSkillIds: ids })}
+          idPrefix={idPrefix}
+        />
+      </ProfileSection>
     </>
   );
 }
 
-export function getEmploymentErrors(state: JobFormState): Record<string, string> {
-  if (state.contractType !== "就職") return {};
-  const errors = validateEmploymentConditions(state.employmentConditions);
-  return Object.fromEntries(errors.map((error) => [error.fieldId, error.message]));
+interface JobFormActionsProps {
+  isSaving: boolean;
+  formMessage: string | null;
+  formStatus: "error" | "success" | null;
+  cancelHref: string;
+  saveLabel: string;
 }
 
-export function focusFirstEmploymentError(errors: Record<string, string>, idPrefix: string) {
-  const firstFieldId = Object.keys(errors)[0];
-  if (!firstFieldId) return;
-  const element = document.getElementById(`${idPrefix}-emp-${firstFieldId}`);
-  element?.focus();
+export function JobFormActions({
+  isSaving,
+  formMessage,
+  formStatus,
+  cancelHref,
+  saveLabel,
+}: JobFormActionsProps) {
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (formMessage) {
+      errorRef.current?.focus();
+    }
+  }, [formMessage]);
+
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6 shadow-sm">
+      {formMessage && (
+        <div
+          ref={errorRef}
+          tabIndex={-1}
+          role="alert"
+          aria-live="assertive"
+          className={
+            formStatus === "success"
+              ? "rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700 focus:outline-none"
+              : "rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 focus:outline-none"
+          }
+        >
+          {formMessage}
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          disabled={isSaving}
+          aria-busy={isSaving}
+          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSaving && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+          {isSaving ? JOB_FORM_BUTTON_LABELS.saving : saveLabel}
+        </button>
+        <Link
+          href={cancelHref}
+          className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-5 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          {JOB_FORM_BUTTON_LABELS.cancel}
+        </Link>
+      </div>
+    </div>
+  );
 }
 
-export function CreateJobForm() {
+interface CreateJobFormProps {
+  skills: Skill[];
+}
+
+export function CreateJobForm({ skills }: CreateJobFormProps) {
+  const router = useRouter();
   const [state, setState] = useState<JobFormState>(() => buildInitialFormState());
-  const [showPreview, setShowPreview] = useState(false);
-  const [savedMessage, setSavedMessage] = useState<string | null>(null);
-  const [employmentErrors, setEmploymentErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [formStatus, setFormStatus] = useState<"error" | "success" | null>(null);
 
   function updateState(patch: Partial<JobFormState>) {
     setState((prev) => ({ ...prev, ...patch }));
   }
 
-  function attemptSave(onValid: () => void) {
-    const errors = getEmploymentErrors(state);
-    if (Object.keys(errors).length > 0) {
-      setEmploymentErrors(errors);
-      focusFirstEmploymentError(errors, "create");
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isSaving) return;
+
+    setFormMessage(null);
+    setFormStatus(null);
+
+    const validationError = validateJobForm(state);
+    if (validationError) {
+      setFormMessage(validationError);
+      setFormStatus("error");
       return;
     }
-    setEmploymentErrors({});
-    onValid();
-  }
 
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    attemptSave(() => setSavedMessage(CREATE_JOB_META.saveSuccessMessage));
-  }
+    setIsSaving(true);
 
-  function handleSaveDraft() {
-    setSavedMessage(CREATE_JOB_META.draftSuccessMessage);
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setFormMessage(JOB_FORM_ERRORS.notSignedIn);
+        setFormStatus("error");
+        return;
+      }
+
+      const input = buildOpportunityInput(state);
+      const { data, error, stage } = await createCompanyOpportunity(supabase, user.id, input);
+
+      if (stage === "opportunity" || stage === "child" || !data) {
+        console.error("[job-form] create failed:", error, "stage:", stage);
+        setFormMessage(
+          stage === "child" ? JOB_FORM_ERRORS.partialSaveFailed : JOB_FORM_ERRORS.saveFailed,
+        );
+        setFormStatus("error");
+        return;
+      }
+
+      if (stage === "skills") {
+        // Opportunity + contract-type row saved fine; only the required-skill
+        // links failed. Not worth blocking navigation over — log it and let
+        // the user add skills via edit afterwards.
+        console.error("[job-form] required skills save failed:", error);
+      }
+
+      router.push(`/company/jobs/${data.id}`);
+      router.refresh();
+    } catch (err) {
+      console.error("[job-form] unexpected create error:", err);
+      setFormMessage(JOB_FORM_ERRORS.saveFailed);
+      setFormStatus("error");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mx-auto flex w-full max-w-4xl flex-col gap-6"
-    >
+    <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <JobFormFields
         state={state}
         onChange={updateState}
+        skills={skills}
         idPrefix="create"
-        employmentErrors={employmentErrors}
+        isContractTypeLocked={false}
       />
       <JobFormActions
-        state={state}
-        onSave={() => attemptSave(() => setSavedMessage(CREATE_JOB_META.saveSuccessMessage))}
-        onSaveDraft={handleSaveDraft}
-        showPreview={showPreview}
-        onTogglePreview={() => setShowPreview((prev) => !prev)}
-        savedMessage={savedMessage}
-        onDismissSavedMessage={() => setSavedMessage(null)}
-        demoNote={CREATE_JOB_META.demoNote}
+        isSaving={isSaving}
+        formMessage={formMessage}
+        formStatus={formStatus}
         cancelHref={CREATE_JOB_META.cancelHref}
+        saveLabel={JOB_FORM_BUTTON_LABELS.save}
       />
     </form>
   );

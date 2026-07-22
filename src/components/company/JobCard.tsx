@@ -2,28 +2,40 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Copy, MapPin, SquarePen, Users } from "lucide-react";
+import { CalendarDays, SquarePen } from "lucide-react";
 import { JobStatusBadge } from "@/components/company/JobStatusBadge";
 import { DeleteJobDialog } from "@/components/company/DeleteJobDialog";
+import type { OpportunityListItem } from "@/lib/company/jobs";
 import {
   CONTRACT_TYPE_BADGE_STYLES,
+  CONTRACT_TYPE_LABEL,
   JOB_CARD_LABELS,
-  type CompanyJob,
 } from "@/constants/company-jobs";
 
 interface JobCardProps {
-  job: CompanyJob;
-  onDuplicate: (id: string) => void;
-  onCloseRecruitment: (id: string) => void;
+  job: OpportunityListItem;
+  onCloseRecruitment: (id: string) => Promise<void>;
 }
 
-export function JobCard({ job, onDuplicate, onCloseRecruitment }: JobCardProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const canClose = job.status === "募集中" || job.status === "下書き";
+function formatDate(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
 
-  function handleConfirmClose() {
-    onCloseRecruitment(job.id);
-    setIsDialogOpen(false);
+export function JobCard({ job, onCloseRecruitment }: JobCardProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const canClose = job.status === "published" || job.status === "draft";
+
+  async function handleConfirmClose() {
+    if (isClosing) return;
+    setIsClosing(true);
+    try {
+      await onCloseRecruitment(job.id);
+    } finally {
+      setIsClosing(false);
+      setIsDialogOpen(false);
+    }
   }
 
   return (
@@ -32,36 +44,28 @@ export function JobCard({ job, onDuplicate, onCloseRecruitment }: JobCardProps) 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${CONTRACT_TYPE_BADGE_STYLES[job.contractType]}`}
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${CONTRACT_TYPE_BADGE_STYLES[job.contract_type as keyof typeof CONTRACT_TYPE_BADGE_STYLES]}`}
             >
-              {job.contractType}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-              {job.location}
+              {CONTRACT_TYPE_LABEL[job.contract_type as keyof typeof CONTRACT_TYPE_LABEL]}
             </span>
           </div>
           <h3 className="mt-2 truncate text-base font-semibold text-foreground">
             {job.title}
           </h3>
-          <p className="mt-0.5 text-sm font-semibold text-foreground">
-            {job.salaryLabel}
-          </p>
         </div>
         <JobStatusBadge status={job.status} className="shrink-0" />
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Users className="h-3.5 w-3.5" aria-hidden="true" />
-          {JOB_CARD_LABELS.applicantsPrefix}
-          {job.applicantCount}
-          {JOB_CARD_LABELS.applicantsSuffix}
+          <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+          {JOB_CARD_LABELS.createdPrefix}
+          {formatDate(job.created_at)}
         </span>
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-          {JOB_CARD_LABELS.publishedPrefix}
-          {job.publishedDateLabel}
+          {JOB_CARD_LABELS.updatedPrefix}
+          {formatDate(job.updated_at)}
         </span>
       </div>
 
@@ -75,14 +79,6 @@ export function JobCard({ job, onDuplicate, onCloseRecruitment }: JobCardProps) 
             {JOB_CARD_LABELS.closeLabel}
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => onDuplicate(job.id)}
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-        >
-          <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-          {JOB_CARD_LABELS.duplicateLabel}
-        </button>
         <Link
           href={`/company/jobs/${job.id}/edit`}
           className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"

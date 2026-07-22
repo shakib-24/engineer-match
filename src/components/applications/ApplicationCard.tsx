@@ -2,24 +2,27 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { ApplicationStatusBadge } from "@/components/applications/ApplicationStatusBadge";
 import { WithdrawDialog } from "@/components/applications/WithdrawDialog";
 import {
   APPLICATION_LIST_META,
   CONTRACT_TYPE_BADGE_STYLES,
+  CONTRACT_TYPE_LABEL,
   WITHDRAWABLE_STATUSES,
-  type Application,
 } from "@/constants/applications";
+import { formatDateJa } from "@/lib/engineer/format";
+import type { ApplicationListItem } from "@/lib/engineer/applications";
 
 interface ApplicationCardProps {
-  application: Application;
+  application: ApplicationListItem;
   onWithdraw: (id: string) => void;
 }
 
 export function ApplicationCard({ application, onWithdraw }: ApplicationCardProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const canWithdraw = WITHDRAWABLE_STATUSES.includes(application.status);
+  const canWithdraw = (WITHDRAWABLE_STATUSES as readonly string[]).includes(application.status);
+  const companyInitial = application.companyName.slice(0, 1);
 
   function handleConfirm() {
     onWithdraw(application.id);
@@ -34,14 +37,14 @@ export function ApplicationCard({ application, onWithdraw }: ApplicationCardProp
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary"
             aria-hidden="true"
           >
-            {application.companyInitials}
+            {companyInitial}
           </div>
           <div className="min-w-0">
             <h3 className="truncate text-base font-semibold text-foreground">
-              {application.jobTitle}
+              {application.opportunityTitle}
             </h3>
             <p className="mt-0.5 truncate text-sm text-muted-foreground">
-              {application.company}
+              {application.companyName}
             </p>
           </div>
         </div>
@@ -50,24 +53,14 @@ export function ApplicationCard({ application, onWithdraw }: ApplicationCardProp
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <span
-          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${CONTRACT_TYPE_BADGE_STYLES[application.contractType]}`}
+          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${CONTRACT_TYPE_BADGE_STYLES[application.opportunityContractType]}`}
         >
-          {application.contractType}
+          {CONTRACT_TYPE_LABEL[application.opportunityContractType]}
         </span>
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-          {application.location}
-        </span>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1">
-        <p className="text-sm font-semibold text-foreground">
-          {application.salaryLabel}
-        </p>
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
           {APPLICATION_LIST_META.appliedPrefix}
-          {application.appliedDateLabel}
+          {formatDateJa(application.applied_at)}
         </p>
       </div>
 

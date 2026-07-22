@@ -3,8 +3,6 @@
  * UI only — no backend, no real data, no authentication.
  */
 
-import { COMPANY_JOBS } from "@/constants/company-jobs";
-
 // ============================================================
 // Page meta
 // ============================================================
@@ -1343,9 +1341,17 @@ export const ENGINEERS: Engineer[] = [
 ];
 
 // ============================================================
-// Scout job options (derived from existing company job postings)
+// Scout job options
 // ============================================================
+// This engineer-search/scout module is still fully placeholder/demo (per
+// this file's header) — unrelated to the real Company Job Posting CRUD in
+// src/lib/company/jobs.ts. Previously derived from the company-jobs.ts mock
+// array, which no longer exists now that job postings are real Supabase
+// data; kept as a small static list so this demo page keeps working
+// unchanged, rather than pulling in real postings (out of scope here).
 
-export const SCOUT_JOB_OPTIONS = COMPANY_JOBS.filter((job) => job.status !== "募集終了").map(
-  (job) => ({ id: job.id, title: job.title }),
-);
+export const SCOUT_JOB_OPTIONS: { id: string; title: string }[] = [
+  { id: "scout-job-1", title: "バックエンドエンジニア（Java / Spring Boot）" },
+  { id: "scout-job-2", title: "フロントエンドエンジニア（React / TypeScript）" },
+  { id: "scout-job-3", title: "インフラエンジニア（AWS / Kubernetes）" },
+];

@@ -5,14 +5,21 @@ import { CompanyOverviewCard } from "@/components/company/CompanyOverviewCard";
 import { CompanyStatistics } from "@/components/company/CompanyStatistics";
 import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
 import { COMPANY_PROFILE_PAGE, COMPANY_PROFILE_STATISTICS } from "@/constants/company";
+import { createClient } from "@/lib/supabase/server";
+import { getCompanyProfile } from "@/lib/company/profile";
 
 export const metadata: Metadata = {
   title: "企業プロフィール | ENGINEER MATCH",
   description: "企業プロフィールを確認・管理できます。",
 };
 
-export default function CompanyProfilePage() {
+export default async function CompanyProfilePage() {
   const user = USER_MENU.company;
+  const supabase = await createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  const profile = authUser ? await getCompanyProfile(supabase, authUser.id) : null;
 
   return (
     <DashboardShell
@@ -31,11 +38,11 @@ export default function CompanyProfilePage() {
         </p>
       </div>
 
-      <CompanyProfileHeader />
+      <CompanyProfileHeader profile={profile} />
 
       <CompanyStatistics items={COMPANY_PROFILE_STATISTICS} />
 
-      <CompanyOverviewCard />
+      <CompanyOverviewCard profile={profile} accountEmail={authUser?.email ?? null} />
     </DashboardShell>
   );
 }

@@ -1,62 +1,65 @@
-import { Building2, MapPin } from "lucide-react";
+import { Building2 } from "lucide-react";
 import {
   APPLY_SIDEBAR_LABELS,
   CONTRACT_TYPE_BADGE_STYLES,
-  STATUS_BADGE_STYLES,
+  CONTRACT_TYPE_LABEL,
   WORK_STYLE_BADGE_STYLES,
-  type Job,
+  WORK_STYLE_LABEL,
 } from "@/constants/jobs";
+import { formatDateJa, formatSalaryLabelFromDetail } from "@/lib/engineer/format";
+import type { EngineerJobDetail } from "@/lib/engineer/opportunities";
 
 interface JobDetailHeroProps {
-  job: Job;
+  detail: EngineerJobDetail;
 }
 
-export function JobDetailHero({ job }: JobDetailHeroProps) {
+export function JobDetailHero({ detail }: JobDetailHeroProps) {
+  const { opportunity, employment, project, hourly, company } = detail;
+  const salaryLabel = formatSalaryLabelFromDetail({
+    contractType: opportunity.contract_type as "employment" | "project" | "hourly",
+    employment,
+    project,
+    hourly,
+  });
+
   return (
     <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-8">
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${CONTRACT_TYPE_BADGE_STYLES[job.contractType]}`}
+          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${CONTRACT_TYPE_BADGE_STYLES[opportunity.contract_type]}`}
         >
-          {job.contractType}
+          {CONTRACT_TYPE_LABEL[opportunity.contract_type]}
         </span>
-        <span
-          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${WORK_STYLE_BADGE_STYLES[job.workStyle]}`}
-        >
-          {job.workStyle}
-        </span>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_BADGE_STYLES[job.status]}`}
-        >
-          <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
-          {job.status}
-        </span>
+        {employment && (
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${WORK_STYLE_BADGE_STYLES[employment.work_style]}`}
+          >
+            {WORK_STYLE_LABEL[employment.work_style]}
+          </span>
+        )}
       </div>
 
       <h2 className="mt-3 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-        {job.title}
+        {opportunity.title}
       </h2>
 
       <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <Building2 className="h-4 w-4" aria-hidden="true" />
           <dt className="sr-only">会社名</dt>
-          <dd>{job.company}</dd>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <MapPin className="h-4 w-4" aria-hidden="true" />
-          <dt className="sr-only">勤務地</dt>
-          <dd>{job.location}</dd>
+          <dd>{company?.company_name ?? ""}</dd>
         </div>
         <div>
           <dt className="sr-only">{APPLY_SIDEBAR_LABELS.updatedLabel}</dt>
           <dd>
-            {APPLY_SIDEBAR_LABELS.updatedLabel}：{job.updatedLabel}
+            {APPLY_SIDEBAR_LABELS.updatedLabel}：{formatDateJa(opportunity.updated_at)}
           </dd>
         </div>
       </dl>
 
-      <p className="mt-4 text-lg font-semibold text-primary">{job.salaryLabel}</p>
+      {salaryLabel && (
+        <p className="mt-4 text-lg font-semibold text-primary">{salaryLabel}</p>
+      )}
     </div>
   );
 }

@@ -1,18 +1,12 @@
-import {
-  APPLICATION_STATUS_BADGE_STYLES,
-  type ApplicationStatus,
-} from "@/constants/applications";
+import { APPLICATION_STATUS_BADGE_STYLES, APPLICATION_STATUS_LABEL } from "@/constants/applications";
 import { cn } from "@/lib/utils";
 
 interface ApplicationStatusBadgeProps {
-  status: ApplicationStatus;
+  status: string;
   className?: string;
 }
 
-export function ApplicationStatusBadge({
-  status,
-  className,
-}: ApplicationStatusBadgeProps) {
+export function ApplicationStatusBadge({ status, className }: ApplicationStatusBadgeProps) {
   return (
     <span
       className={cn(
@@ -21,7 +15,7 @@ export function ApplicationStatusBadge({
         className,
       )}
     >
-      {status}
+      {APPLICATION_STATUS_LABEL[status] ?? status}
     </span>
   );
 }

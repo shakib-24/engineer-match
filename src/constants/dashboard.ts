@@ -33,6 +33,13 @@ export const USER_MENU = {
   company: { name: "株式会社テックイノベーション", role: "採用担当", initials: "採用" },
 } as const;
 
+export const DASHBOARD_LOGOUT = {
+  label: "ログアウト",
+  loadingLabel: "ログアウト中…",
+  errorMessage:
+    "ログアウトに失敗しました。しばらくしてから再度お試しください。",
+} as const;
+
 // ============================================================
 // Engineer overview
 // ============================================================

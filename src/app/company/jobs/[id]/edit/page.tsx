@@ -5,35 +5,45 @@ import { ArrowLeft } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { EditJobForm } from "@/components/company/EditJobForm";
 import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
-import { COMPANY_JOBS, EDIT_JOB_META } from "@/constants/company-jobs";
+import { EDIT_JOB_META } from "@/constants/company-jobs";
+import { createClient } from "@/lib/supabase/server";
+import { getCompanyOpportunity, listSkills } from "@/lib/company/jobs";
 
 interface CompanyEditJobPageProps {
   params: Promise<{ id: string }>;
-}
-
-export function generateStaticParams() {
-  return COMPANY_JOBS.map((job) => ({ id: job.id }));
 }
 
 export async function generateMetadata({
   params,
 }: CompanyEditJobPageProps): Promise<Metadata> {
   const { id } = await params;
-  const job = COMPANY_JOBS.find((item) => item.id === id);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const detail = user ? await getCompanyOpportunity(supabase, user.id, id) : null;
 
   return {
-    title: job ? `${job.title}を編集 | ENGINEER MATCH` : "求人を編集 | ENGINEER MATCH",
+    title: detail
+      ? `${detail.opportunity.title}を編集 | ENGINEER MATCH`
+      : "求人を編集 | ENGINEER MATCH",
   };
 }
 
 export default async function CompanyEditJobPage({ params }: CompanyEditJobPageProps) {
   const { id } = await params;
-  const job = COMPANY_JOBS.find((item) => item.id === id);
+  const supabase = await createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
 
-  if (!job) {
+  const detail = authUser ? await getCompanyOpportunity(supabase, authUser.id, id) : null;
+
+  if (!detail) {
     notFound();
   }
 
+  const skills = await listSkills(supabase);
   const user = USER_MENU.company;
 
   return (
@@ -46,7 +56,7 @@ export default async function CompanyEditJobPage({ params }: CompanyEditJobPageP
     >
       <div>
         <Link
-          href={`/company/jobs/${job.id}`}
+          href={`/company/jobs/${detail.opportunity.id}`}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -61,7 +71,7 @@ export default async function CompanyEditJobPage({ params }: CompanyEditJobPageP
         <p className="mt-1 text-sm text-muted-foreground">{EDIT_JOB_META.description}</p>
       </div>
 
-      <EditJobForm job={job} />
+      <EditJobForm detail={detail} skills={skills} />
     </DashboardShell>
   );
 }

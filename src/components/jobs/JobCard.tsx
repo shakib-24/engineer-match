@@ -1,47 +1,49 @@
 "use client";
 
 import Link from "next/link";
-import { Bookmark, MapPin } from "lucide-react";
-import { ItssBadge } from "@/components/engineer/profile/ItssBadge";
+import { Bookmark } from "lucide-react";
 import {
   CONTRACT_TYPE_BADGE_STYLES,
+  CONTRACT_TYPE_LABEL,
   JOB_LIST_META,
   WORK_STYLE_BADGE_STYLES,
-  type Job,
+  WORK_STYLE_LABEL,
 } from "@/constants/jobs";
+import { formatRelativeDaysJa, formatSalaryLabel } from "@/lib/engineer/format";
+import type { HydratedOpportunity } from "@/lib/engineer/opportunities";
 
 interface JobCardProps {
-  job: Job;
+  job: HydratedOpportunity;
   isBookmarked: boolean;
   onToggleBookmark: (id: string) => void;
 }
 
 export function JobCard({ job, isBookmarked, onToggleBookmark }: JobCardProps) {
+  const salaryLabel = formatSalaryLabel(job);
+
   return (
     <div className="group rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${CONTRACT_TYPE_BADGE_STYLES[job.contractType]}`}
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${CONTRACT_TYPE_BADGE_STYLES[job.contract_type]}`}
             >
-              {job.contractType}
+              {CONTRACT_TYPE_LABEL[job.contract_type]}
             </span>
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${WORK_STYLE_BADGE_STYLES[job.workStyle]}`}
-            >
-              {job.workStyle}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-              {job.location}
-            </span>
+            {job.workStyle && (
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${WORK_STYLE_BADGE_STYLES[job.workStyle]}`}
+              >
+                {WORK_STYLE_LABEL[job.workStyle]}
+              </span>
+            )}
           </div>
           <h3 className="mt-2 truncate text-base font-semibold text-foreground">
             {job.title}
           </h3>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
-            {job.company}
+            {job.companyName}
           </p>
         </div>
 
@@ -61,29 +63,29 @@ export function JobCard({ job, isBookmarked, onToggleBookmark }: JobCardProps) {
         </button>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <p className="text-sm font-semibold text-foreground">{job.salaryLabel}</p>
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-          <ItssBadge level={job.itssLevel} size="sm" />
-          {JOB_LIST_META.itssRecommendationLabel}
-        </span>
-      </div>
+      {salaryLabel && (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <p className="text-sm font-semibold text-foreground">{salaryLabel}</p>
+        </div>
+      )}
 
-      <ul className="mt-3 flex flex-wrap gap-1.5">
-        {job.requiredSkills.slice(0, 5).map((skill) => (
-          <li
-            key={skill}
-            className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
-          >
-            {skill}
-          </li>
-        ))}
-      </ul>
+      {job.requiredSkillNames.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-1.5">
+          {job.requiredSkillNames.slice(0, 5).map((skill) => (
+            <li
+              key={skill}
+              className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+            >
+              {skill}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="mt-5 flex items-center justify-between gap-3">
         <span className="text-xs text-muted-foreground">
           {JOB_LIST_META.postedPrefix}
-          {job.postedLabel}
+          {formatRelativeDaysJa(job.created_at)}
         </span>
         <Link
           href={`/engineer/jobs/${job.id}`}

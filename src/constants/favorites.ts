@@ -1,10 +1,12 @@
 /**
- * Engineer Favorite Jobs module placeholder content (Japanese).
- * UI only — no backend, no database, no API.
+ * Engineer Favorite Jobs module content (Japanese).
+ * Real Supabase-backed data (see src/lib/engineer/favorites.ts) against
+ * public.favorites, hydrated via src/lib/engineer/opportunities.ts.
  *
- * Job mock data is intentionally NOT duplicated here — this module reuses
- * `JOBS` and the shared filter vocabulary (contract type / location / work
- * style / badge styles) from `@/constants/jobs`.
+ * Fields with no DB backing in the original UI-only mock (location, work
+ * style filter beyond what opportunity_employment carries, salary-based
+ * sort, application-status filter) have been dropped rather than
+ * fabricated.
  */
 
 // ============================================================
@@ -17,76 +19,13 @@ export const FAVORITES_PAGE = {
 } as const;
 
 // ============================================================
-// Summary cards
-// ============================================================
-
-export const FAVORITE_SUMMARY_LABELS = {
-  saved: { label: "保存済み", helper: "現在お気に入りに登録中" },
-  applied: { label: "応募済み", helper: "すでに応募した求人・案件" },
-  notApplied: { label: "未応募", helper: "まだ応募していない求人・案件" },
-  recentlyAdded: { label: "最近追加", helper: "過去7日間" },
-} as const;
-
-// ============================================================
-// Search
-// ============================================================
-
-export const FAVORITE_SEARCH_LABELS = {
-  label: "求人・案件を検索",
-  placeholder: "求人・案件を検索",
-} as const;
-
-// ============================================================
-// Filters / Sort
-// ============================================================
-
-export const FAVORITE_FILTER_LABELS = {
-  title: "絞り込み条件",
-  contractType: "契約形態",
-  location: "勤務地",
-  workStyle: "勤務形態",
-  applicationStatus: "応募状況",
-  sortLabel: "並び替え",
-  resetLabel: "条件をリセット",
-} as const;
-
-export const FAVORITE_APPLICATION_STATUS_OPTIONS = ["応募済み", "未応募"] as const;
-export type FavoriteApplicationStatusFilter =
-  (typeof FAVORITE_APPLICATION_STATUS_OPTIONS)[number];
-
-export const FAVORITE_SORT_OPTIONS = [
-  { value: "newest", label: "最新順" },
-  { value: "oldest", label: "古い順" },
-  { value: "salary", label: "給与順" },
-] as const;
-export type FavoriteSortOption = (typeof FAVORITE_SORT_OPTIONS)[number]["value"];
-
-export interface FavoriteFilterState {
-  contractTypes: string[];
-  locations: string[];
-  workStyles: string[];
-  applicationStatuses: FavoriteApplicationStatusFilter[];
-}
-
-export const DEFAULT_FAVORITE_FILTER_STATE: FavoriteFilterState = {
-  contractTypes: [],
-  locations: [],
-  workStyles: [],
-  applicationStatuses: [],
-};
-
-// ============================================================
 // Favorite job card
 // ============================================================
 
 export const FAVORITE_CARD_LABELS = {
   detailButtonLabel: "詳細を見る",
-  applyButtonLabel: "応募する",
-  appliedButtonLabel: "応募済み",
   removeButtonLabel: "お気に入り解除",
-  appliedBadgeLabel: "応募済み",
   bookmarkedPrefix: "保存日：",
-  itssRecommendationLabel: "推奨ITSSレベル",
 } as const;
 
 // ============================================================
@@ -98,9 +37,24 @@ export const REMOVE_FAVORITE_DIALOG_LABELS = {
   description: "この操作は取り消せません。",
   cancelLabel: "キャンセル",
   confirmLabel: "削除する",
+  errorMessage: "お気に入りの削除に失敗しました。しばらくしてから再度お試しください。",
 } as const;
 
 export const REMOVE_FAVORITE_TOAST_MESSAGE = "お気に入りから削除しました。";
+
+// ============================================================
+// Loading / error states
+// ============================================================
+
+export const LOADING_STATE_LABELS = {
+  message: "お気に入りを読み込んでいます…",
+} as const;
+
+export const ERROR_STATE_LABELS = {
+  title: "お気に入りの読み込みに失敗しました。",
+  description: "しばらくしてから再度お試しください。",
+  retryLabel: "再読み込み",
+} as const;
 
 // ============================================================
 // Empty states
@@ -113,16 +67,17 @@ export const FAVORITE_EMPTY_STATE_LABELS = {
   ctaHref: "/engineer/jobs",
 } as const;
 
-export const FAVORITE_FILTERED_EMPTY_STATE_LABELS = {
-  title: "条件に一致するお気に入りが見つかりませんでした。",
-  description: "検索キーワードや絞り込み条件を変更してお試しください。",
-  resetLabel: "条件をリセット",
-} as const;
-
 // ============================================================
 // Results count
 // ============================================================
 
 export const FAVORITE_RESULTS_META = {
   resultsSuffix: "件のお気に入り求人・案件",
+} as const;
+
+export const SIGN_IN_REQUIRED_LABELS = {
+  title: "ログインが必要です。",
+  description: "お気に入りの確認にはログインが必要です。",
+  ctaLabel: "ログイン",
+  ctaHref: "/login",
 } as const;
