@@ -3,9 +3,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 /**
  * public.skill_assessments, per 030_skill_assessments.sql. Deliberately
  * independent of skill_categories/skills (003_master_tables.sql) — see that
- * migration's header comment for why. Only HUMAN rows exist today; BUSINESS
- * rows (論理的思考力 / 問題解決力 / 情報収集力 / プロジェクトマネジメント力 /
- * 交渉力) are reserved for a later phase once their questionnaires are supplied.
+ * migration's header comment for why. HUMAN rows are seeded in
+ * 030_skill_assessments.sql; BUSINESS rows (課題解決力 / 論理的思考力 /
+ * タスク管理力 / 主体性 / チームワーク力 / 調整・交渉力) are seeded in
+ * 031_business_skill_assessments.sql.
  */
 export interface SkillAssessment {
   id: string;
@@ -98,6 +99,22 @@ export async function listHumanAssessments(supabase: SupabaseClient): Promise<Sk
 
   if (error) {
     console.error("[skill-assessments] failed to list HUMAN assessments:", error);
+    return [];
+  }
+
+  return (data ?? []) as SkillAssessment[];
+}
+
+/** The six BUSINESS assessments (031_business_skill_assessments.sql), ordered for display. */
+export async function listBusinessAssessments(supabase: SupabaseClient): Promise<SkillAssessment[]> {
+  const { data, error } = await supabase
+    .from("skill_assessments")
+    .select("id, code, category, name, display_order")
+    .eq("category", "BUSINESS")
+    .order("display_order");
+
+  if (error) {
+    console.error("[skill-assessments] failed to list BUSINESS assessments:", error);
     return [];
   }
 

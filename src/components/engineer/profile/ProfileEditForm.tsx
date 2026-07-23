@@ -28,8 +28,7 @@ import {
   BASIC_INFO,
   BASIC_INFO_FORM_FIELDS,
   BASIC_INFO_LABELS,
-  BUSINESS_SKILLS,
-  BUSINESS_SKILL_OPTIONS,
+  BUSINESS_SKILL_EDIT_NOTE,
   CERTIFICATIONS,
   CERTIFICATION_FORM_FIELDS,
   CONTRACT_TYPE_OPTIONS,
@@ -52,7 +51,6 @@ import {
   PROFILE_EDIT_SECTIONS,
   PROFILE_HEADER,
   PROFILE_VISIBILITY,
-  RATING_OPTIONS,
   REMOTE_PREFERENCE_OPTIONS,
   SKILLS_SECTION,
   SKILL_OPTIONS,
@@ -87,12 +85,6 @@ interface TechnicalSkillRow {
   name: string;
   itssLevel: number;
   experienceYears: number;
-}
-
-interface RatedSkillRow {
-  id: string;
-  name: string;
-  rating: number;
 }
 
 interface WorkExperienceRow {
@@ -166,31 +158,6 @@ function useTechnicalSkillRows(initialRows: TechnicalSkillRow[]) {
   }
 
   function update(id: string, patch: Partial<TechnicalSkillRow>) {
-    setRows((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, ...patch } : row)),
-    );
-  }
-
-  return { rows, add, remove, update };
-}
-
-function useRatedSkillRows(initialRows: RatedSkillRow[], idPrefix: string, defaultOption: string) {
-  const [rows, setRows] = useState<RatedSkillRow[]>(initialRows);
-  const counter = useRef(0);
-
-  function add() {
-    counter.current += 1;
-    setRows((prev) => [
-      ...prev,
-      { id: `${idPrefix}-new-${counter.current}`, name: defaultOption, rating: 3 },
-    ]);
-  }
-
-  function remove(id: string) {
-    setRows((prev) => prev.filter((row) => row.id !== id));
-  }
-
-  function update(id: string, patch: Partial<RatedSkillRow>) {
     setRows((prev) =>
       prev.map((row) => (row.id === id ? { ...row, ...patch } : row)),
     );
@@ -324,94 +291,6 @@ function TechnicalSkillEditor({
   );
 }
 
-interface RatedSkillEditorProps {
-  legend: string;
-  legendIcon: typeof Users;
-  addLabel: string;
-  options: readonly string[];
-  rows: RatedSkillRow[];
-  onAdd: () => void;
-  onRemove: (id: string) => void;
-  onChange: (id: string, patch: Partial<RatedSkillRow>) => void;
-}
-
-function RatedSkillEditor({
-  legend,
-  legendIcon: LegendIcon,
-  addLabel,
-  options,
-  rows,
-  onAdd,
-  onRemove,
-  onChange,
-}: RatedSkillEditorProps) {
-  return (
-    <fieldset className="flex flex-col gap-3">
-      <legend className="flex items-center gap-2 text-sm font-semibold text-foreground">
-        <LegendIcon className="h-4 w-4 text-primary" aria-hidden="true" />
-        {legend}
-      </legend>
-      {rows.map((row) => (
-        <div
-          key={row.id}
-          className="flex flex-wrap items-end gap-3 rounded-xl border border-border p-3"
-        >
-          <div className="flex min-w-40 flex-1 flex-col gap-1.5">
-            <Label htmlFor={`${row.id}-name`}>{SKILL_ROW_LABELS.skillLabel}</Label>
-            <select
-              id={`${row.id}-name`}
-              value={row.name}
-              onChange={(event) => onChange(row.id, { name: event.target.value })}
-              className={SELECT_CLASS}
-            >
-              {options.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex w-28 flex-col gap-1.5">
-            <Label htmlFor={`${row.id}-rating`}>
-              {SKILL_ROW_LABELS.ratingLabel}
-            </Label>
-            <select
-              id={`${row.id}-rating`}
-              value={row.rating}
-              onChange={(event) =>
-                onChange(row.id, { rating: Number(event.target.value) })
-              }
-              className={SELECT_CLASS}
-            >
-              {RATING_OPTIONS.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="button"
-            onClick={() => onRemove(row.id)}
-            aria-label={`${SKILL_ROW_LABELS.removeLabel}：${row.name}`}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={onAdd}
-        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-primary transition-colors duration-200 hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-      >
-        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-        {addLabel}
-      </button>
-    </fieldset>
-  );
-}
-
 export function ProfileEditForm() {
   const [basicInfo, setBasicInfo] = useState<BasicInfoState>(() => ({
     name: PROFILE_HEADER.name,
@@ -445,16 +324,6 @@ export function ProfileEditForm() {
       experienceYears: skill.experienceYears,
     })),
   );
-  const businessSkills = useRatedSkillRows(
-    BUSINESS_SKILLS.map((skill, index) => ({
-      id: `business-${index}`,
-      name: skill.name,
-      rating: skill.rating,
-    })),
-    "business",
-    BUSINESS_SKILL_OPTIONS[0],
-  );
-
   const [workExperience, setWorkExperience] = useState<WorkExperienceRow[]>(() =>
     WORK_EXPERIENCE.map((item) => ({
       ...item,
@@ -752,16 +621,23 @@ export function ProfileEditForm() {
               </Link>
             </div>
           </fieldset>
-          <RatedSkillEditor
-            legend={SKILLS_SECTION.businessTitle}
-            legendIcon={BrainCircuit}
-            addLabel={SKILL_ROW_LABELS.addBusinessLabel}
-            options={BUSINESS_SKILL_OPTIONS}
-            rows={businessSkills.rows}
-            onAdd={businessSkills.add}
-            onRemove={businessSkills.remove}
-            onChange={businessSkills.update}
-          />
+          <fieldset className="flex flex-col gap-3">
+            <legend className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <BrainCircuit className="h-4 w-4 text-primary" aria-hidden="true" />
+              {SKILLS_SECTION.businessTitle}
+            </legend>
+            <div className="rounded-xl border border-dashed border-border p-4">
+              <p className="text-sm text-muted-foreground">
+                {BUSINESS_SKILL_EDIT_NOTE.description}
+              </p>
+              <Link
+                href={BUSINESS_SKILL_EDIT_NOTE.ctaHref}
+                className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
+                {BUSINESS_SKILL_EDIT_NOTE.ctaLabel}
+              </Link>
+            </div>
+          </fieldset>
         </div>
       </ProfileSection>
 

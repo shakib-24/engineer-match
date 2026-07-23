@@ -97,12 +97,19 @@ export const HUMAN_SKILL_EDIT_NOTE = {
   ctaHref: "/engineer/profile",
 } as const;
 
-export const BUSINESS_SKILLS = [
-  { name: "論理的思考力", rating: 4 },
-  { name: "問題解決力", rating: 4 },
-  { name: "情報収集力", rating: 3 },
-  { name: "プロジェクトマネジメント力", rating: 3 },
-] as const;
+/**
+ * ビジネススキル (課題解決力 / 論理的思考力 / タスク管理力 / 主体性 /
+ * チームワーク力 / 調整・交渉力) is also real Supabase data now (see
+ * src/lib/engineer/skill-assessments.ts, public.skill_assessments +
+ * skill_assessment_attempts, 031_business_skill_assessments.sql) -- no mock
+ * rating array here.
+ */
+export const BUSINESS_SKILL_EDIT_NOTE = {
+  description:
+    "ビジネススキルは診断結果に基づいて表示されます。プロフィール画面から各診断を実施・再診断してください。",
+  ctaLabel: "プロフィールで診断する",
+  ctaHref: "/engineer/profile",
+} as const;
 
 // ============================================================
 // Work experience
@@ -390,24 +397,13 @@ export const SKILL_OPTIONS = [
   "GraphQL",
 ] as const;
 
-export const BUSINESS_SKILL_OPTIONS = [
-  "論理的思考力",
-  "問題解決力",
-  "情報収集力",
-  "プロジェクトマネジメント力",
-  "交渉力",
-] as const;
-
 export const ITSS_LEVEL_OPTIONS = [1, 2, 3, 4, 5, 6, 7] as const;
-export const RATING_OPTIONS = [1, 2, 3, 4, 5] as const;
 
 export const SKILL_ROW_LABELS = {
   skillLabel: "スキル",
   itssLevelLabel: "ITSSレベル",
-  ratingLabel: "自己評価",
   experienceYearsLabel: "経験年数（年）",
   addTechnicalLabel: "テクニカルスキルを追加",
-  addBusinessLabel: "ビジネススキルを追加",
   removeLabel: "このスキルを削除",
 } as const;
 

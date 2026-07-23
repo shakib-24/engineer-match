@@ -25,7 +25,6 @@ import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
 import {
   BASIC_INFO,
   BASIC_INFO_LABELS,
-  BUSINESS_SKILLS,
   CERTIFICATIONS,
   CERTIFICATIONS_SECTION,
   EDUCATION,
@@ -44,7 +43,11 @@ import {
   WORK_EXPERIENCE_SECTION,
 } from "@/constants/engineer-profile";
 import { createClient } from "@/lib/supabase/server";
-import { listHumanAssessments, listLatestAttempts } from "@/lib/engineer/skill-assessments";
+import {
+  listBusinessAssessments,
+  listHumanAssessments,
+  listLatestAttempts,
+} from "@/lib/engineer/skill-assessments";
 
 export const metadata: Metadata = {
   title: "プロフィール | ENGINEER MATCH",
@@ -63,12 +66,15 @@ export default async function EngineerProfilePage() {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
-  const humanAssessments = await listHumanAssessments(supabase);
+  const [humanAssessments, businessAssessments] = await Promise.all([
+    listHumanAssessments(supabase),
+    listBusinessAssessments(supabase),
+  ]);
   const latestAttempts = authUser
     ? await listLatestAttempts(
         supabase,
         authUser.id,
-        humanAssessments.map((assessment) => assessment.id),
+        [...humanAssessments, ...businessAssessments].map((assessment) => assessment.id),
       )
     : new Map();
 
@@ -218,12 +224,12 @@ export default async function EngineerProfilePage() {
                   {SKILLS_SECTION.businessTitle}
                 </h3>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {BUSINESS_SKILLS.map((skill) => (
-                    <SkillCard
-                      key={skill.name}
-                      variant="rated"
-                      name={skill.name}
-                      rating={skill.rating}
+                  {businessAssessments.map((assessment) => (
+                    <HumanSkillAssessmentCard
+                      key={assessment.id}
+                      name={assessment.name}
+                      code={assessment.code}
+                      finalLevel={latestAttempts.get(assessment.id)?.final_level ?? null}
                     />
                   ))}
                 </div>
