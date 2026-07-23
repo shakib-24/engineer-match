@@ -14,6 +14,8 @@ interface EngineerFilterDrawerProps {
   filters: EngineerFilterState;
   onChange: (patch: Partial<EngineerFilterState>) => void;
   resultCount: number;
+  prefectureOptions: string[];
+  skillOptions: string[];
 }
 
 export function EngineerFilterDrawer({
@@ -22,6 +24,8 @@ export function EngineerFilterDrawer({
   filters,
   onChange,
   resultCount,
+  prefectureOptions,
+  skillOptions,
 }: EngineerFilterDrawerProps) {
   return (
     <div
@@ -63,7 +67,13 @@ export function EngineerFilterDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-5">
-          <EngineerFilterFields filters={filters} onChange={onChange} idPrefix="drawer" />
+          <EngineerFilterFields
+            filters={filters}
+            onChange={onChange}
+            idPrefix="drawer"
+            prefectureOptions={prefectureOptions}
+            skillOptions={skillOptions}
+          />
         </div>
 
         <div className="shrink-0 border-t border-border p-4">

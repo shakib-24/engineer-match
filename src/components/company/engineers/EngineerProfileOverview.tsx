@@ -1,11 +1,15 @@
 import { UserRound } from "lucide-react";
-import { ENGINEER_DETAIL_META, OVERVIEW_LABELS, type Engineer } from "@/constants/company-engineers";
+import { WORK_STYLE_LABEL } from "@/constants/jobs";
+import { ENGINEER_DETAIL_META } from "@/constants/company-engineers";
+import type { EngineerDetail } from "@/lib/company/engineers";
 
 interface EngineerProfileOverviewProps {
-  engineer: Engineer;
+  engineer: EngineerDetail;
 }
 
 export function EngineerProfileOverview({ engineer }: EngineerProfileOverviewProps) {
+  const hasRateRange = engineer.desiredRateMin !== null && engineer.desiredRateMax !== null;
+
   return (
     <section className="rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-8">
       <div className="flex items-center gap-3">
@@ -17,72 +21,56 @@ export function EngineerProfileOverview({ engineer }: EngineerProfileOverviewPro
         </h3>
       </div>
 
-      <div className="mt-5">
-        <h4 className="text-xs text-muted-foreground">{OVERVIEW_LABELS.introductionTitle}</h4>
-        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-          {engineer.selfIntroduction}
-        </p>
-      </div>
+      {engineer.selfPr && (
+        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{engineer.selfPr}</p>
+      )}
 
-      <dl className="mt-6 grid grid-cols-1 gap-4 border-t border-border pt-6 sm:grid-cols-2">
-        <div>
-          <dt className="text-xs text-muted-foreground">{OVERVIEW_LABELS.desiredRole}</dt>
-          <dd className="mt-1 text-sm font-medium text-foreground">{engineer.title}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">{OVERVIEW_LABELS.desiredContract}</dt>
-          <dd className="mt-1 flex flex-wrap gap-1.5">
-            {engineer.preferredContractTypes.map((type) => (
-              <span
-                key={type}
-                className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-primary"
+      <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-border pt-5 sm:grid-cols-2">
+        {engineer.yearsOfExperience !== null && (
+          <div>
+            <dt className="text-xs text-muted-foreground">経験年数</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">
+              {engineer.yearsOfExperience}年
+            </dd>
+          </div>
+        )}
+        {engineer.prefecture && (
+          <div>
+            <dt className="text-xs text-muted-foreground">居住地</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">{engineer.prefecture}</dd>
+          </div>
+        )}
+        {engineer.workStyle && (
+          <div>
+            <dt className="text-xs text-muted-foreground">希望の働き方</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">
+              {WORK_STYLE_LABEL[engineer.workStyle]}
+            </dd>
+          </div>
+        )}
+        {hasRateRange && (
+          <div>
+            <dt className="text-xs text-muted-foreground">希望単価</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">
+              {engineer.desiredRateMin}万円〜{engineer.desiredRateMax}万円/月
+            </dd>
+          </div>
+        )}
+        {engineer.portfolioUrl && (
+          <div className="min-w-0 sm:col-span-2">
+            <dt className="text-xs text-muted-foreground">Portfolio URL</dt>
+            <dd className="mt-1 text-sm font-medium break-all">
+              <a
+                href={engineer.portfolioUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-2 transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
               >
-                {type}
-              </span>
-            ))}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">{OVERVIEW_LABELS.desiredWorkStyle}</dt>
-          <dd className="mt-1 flex flex-wrap gap-1.5">
-            {engineer.preferredWorkStyles.map((style) => (
-              <span
-                key={style}
-                className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-medium text-foreground"
-              >
-                {style}
-              </span>
-            ))}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">{OVERVIEW_LABELS.availableFrom}</dt>
-          <dd className="mt-1 text-sm font-medium text-foreground">{engineer.availableFrom}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">
-            {OVERVIEW_LABELS.expectedAnnualSalary}
-          </dt>
-          <dd className="mt-1 text-sm font-semibold text-foreground">
-            {engineer.expectedAnnualSalary}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">
-            {OVERVIEW_LABELS.expectedMonthlyRate}
-          </dt>
-          <dd className="mt-1 text-sm font-semibold text-foreground">
-            {engineer.expectedMonthlyRate}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">
-            {OVERVIEW_LABELS.expectedHourlyRate}
-          </dt>
-          <dd className="mt-1 text-sm font-semibold text-foreground">
-            {engineer.expectedHourlyRate}
-          </dd>
-        </div>
+                {engineer.portfolioUrl}
+              </a>
+            </dd>
+          </div>
+        )}
       </dl>
     </section>
   );

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { EngineerSearchHeader } from "@/components/company/engineers/EngineerSearchHeader";
@@ -16,54 +15,30 @@ import { EngineerCard } from "@/components/company/engineers/EngineerCard";
 import { EngineerEmptyState } from "@/components/company/engineers/EngineerEmptyState";
 import {
   FILTER_LABELS,
-  RECENT_SEARCHES,
+  NO_ENGINEERS_LABELS,
   RESULTS_META,
-  SCOUT_DIALOG_LABELS,
   SEARCH_LABELS,
-  SIDEBAR_LABELS,
   SORT_OPTIONS,
-  type Engineer,
   type SortOption,
 } from "@/constants/company-engineers";
+import type { EngineerSearchListItem } from "@/lib/company/engineers";
 
 const SELECT_CLASSNAME =
   "h-11 w-full min-w-0 max-w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none";
 
-const EXPERIENCE_BUCKET_RANGES: Record<string, [number, number]> = {
-  under1: [0, 1],
-  "1to3": [1, 3],
-  "3to5": [3, 5],
-  "5to10": [5, 10],
-  over10: [10, Infinity],
-};
-
-function matchesExperienceBucket(years: number, bucket: string | null): boolean {
-  if (bucket === null) return true;
-  const range = EXPERIENCE_BUCKET_RANGES[bucket];
-  if (!range) return true;
-  return years >= range[0] && years < range[1];
-}
-
-function getMaxItssLevel(engineer: Engineer): number {
-  return Math.max(...engineer.technicalSkills.map((skill) => skill.itssLevel), 1);
+function getMaxItssLevel(engineer: EngineerSearchListItem): number {
+  return engineer.technicalSkills.reduce((max, skill) => Math.max(max, skill.level ?? 0), 0);
 }
 
 interface EngineerListProps {
-  engineers: Engineer[];
+  engineers: EngineerSearchListItem[];
 }
 
 export function EngineerList({ engineers }: EngineerListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<EngineerFilterState>(DEFAULT_ENGINEER_FILTER_STATE);
-  const [sortOption, setSortOption] = useState<SortOption>("recommended");
+  const [sortOption, setSortOption] = useState<SortOption | "">("");
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
-  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(
-    () => new Set(engineers.filter((engineer) => engineer.isFavorited).map((engineer) => engineer.id)),
-  );
-  const [scoutedIds, setScoutedIds] = useState<Set<string>>(
-    () => new Set(engineers.filter((engineer) => engineer.isScouted).map((engineer) => engineer.id)),
-  );
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   function updateFilters(patch: Partial<EngineerFilterState>) {
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -74,64 +49,45 @@ export function EngineerList({ engineers }: EngineerListProps) {
     setFilters(DEFAULT_ENGINEER_FILTER_STATE);
   }
 
-  function handleToggleFavorite(id: string) {
-    setFavoritedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
+  const prefectureOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(engineers.map((engineer) => engineer.prefecture).filter((v): v is string => !!v)),
+      ).sort(),
+    [engineers],
+  );
 
-  function handleScout(id: string) {
-    setScoutedIds((prev) => new Set(prev).add(id));
-    setToastMessage(`${SCOUT_DIALOG_LABELS.toastTitle} ${SCOUT_DIALOG_LABELS.toastNote}`);
-    window.setTimeout(() => setToastMessage(null), 3500);
-  }
+  const skillOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(engineers.flatMap((engineer) => engineer.technicalSkills.map((skill) => skill.name))),
+      ).sort(),
+    [engineers],
+  );
 
   const activeFilterCount =
-    filters.contractTypes.length +
-    filters.locations.length +
+    filters.prefectures.length +
     filters.workStyles.length +
-    filters.categories.length +
     filters.skills.length +
     filters.itssLevels.length +
-    (filters.experienceBucket !== null ? 1 : 0) +
-    filters.availability.length +
-    filters.languages.length;
+    (filters.experienceMin !== null ? 1 : 0);
 
   const filteredEngineers = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
     const filtered = engineers.filter((engineer) => {
       if (query) {
-        const haystack = [
-          engineer.name,
-          engineer.title,
-          ...engineer.technicalSkills.map((skill) => skill.name),
-          ...engineer.certifications.map((cert) => cert.name),
-        ]
+        const haystack = [engineer.name, ...engineer.technicalSkills.map((skill) => skill.name)]
           .join(" ")
           .toLowerCase();
         if (!haystack.includes(query)) return false;
       }
-      if (
-        filters.contractTypes.length > 0 &&
-        !engineer.preferredContractTypes.some((type) => filters.contractTypes.includes(type))
-      )
-        return false;
-      if (filters.locations.length > 0 && !filters.locations.includes(engineer.location))
-        return false;
-      if (
-        filters.workStyles.length > 0 &&
-        !engineer.preferredWorkStyles.some((style) => filters.workStyles.includes(style))
-      )
-        return false;
-      if (filters.categories.length > 0 && !filters.categories.includes(engineer.category))
-        return false;
+      if (filters.prefectures.length > 0) {
+        if (!engineer.prefecture || !filters.prefectures.includes(engineer.prefecture)) return false;
+      }
+      if (filters.workStyles.length > 0) {
+        if (!engineer.workStyle || !filters.workStyles.includes(engineer.workStyle)) return false;
+      }
       if (
         filters.skills.length > 0 &&
         !engineer.technicalSkills.some((skill) => filters.skills.includes(skill.name))
@@ -139,16 +95,14 @@ export function EngineerList({ engineers }: EngineerListProps) {
         return false;
       if (
         filters.itssLevels.length > 0 &&
-        !engineer.technicalSkills.some((skill) => filters.itssLevels.includes(skill.itssLevel))
+        !engineer.technicalSkills.some(
+          (skill) => skill.level !== null && filters.itssLevels.includes(skill.level),
+        )
       )
         return false;
-      if (!matchesExperienceBucket(engineer.experienceYears, filters.experienceBucket))
-        return false;
-      if (filters.availability.length > 0 && !filters.availability.includes(engineer.availability))
-        return false;
       if (
-        filters.languages.length > 0 &&
-        !engineer.languages.some((lang) => filters.languages.includes(lang.name))
+        filters.experienceMin !== null &&
+        (engineer.yearsOfExperience ?? 0) < filters.experienceMin
       )
         return false;
       return true;
@@ -156,24 +110,29 @@ export function EngineerList({ engineers }: EngineerListProps) {
 
     const sorted = [...filtered].sort((a, b) => {
       switch (sortOption) {
-        case "lastActive":
-          return b.lastActiveDateISO.localeCompare(a.lastActiveDateISO);
         case "experience":
-          return b.experienceYears - a.experienceYears;
+          return (b.yearsOfExperience ?? 0) - (a.yearsOfExperience ?? 0);
         case "itss":
           return getMaxItssLevel(b) - getMaxItssLevel(a);
-        case "registered":
-          return b.registeredDateISO.localeCompare(a.registeredDateISO);
-        case "recommended":
         default:
-          return 0;
+          return a.name.localeCompare(b.name, "ja");
       }
     });
 
     return sorted;
   }, [engineers, searchQuery, filters, sortOption]);
 
-  const favoritedEngineers = engineers.filter((engineer) => favoritedIds.has(engineer.id));
+  if (engineers.length === 0) {
+    return (
+      <div className="flex flex-col gap-6">
+        <EngineerSearchHeader />
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
+          <p className="text-sm font-semibold text-foreground">{NO_ENGINEERS_LABELS.title}</p>
+          <p className="text-sm text-muted-foreground">{NO_ENGINEERS_LABELS.description}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
@@ -239,9 +198,10 @@ export function EngineerList({ engineers }: EngineerListProps) {
             <select
               id="engineer-sort"
               value={sortOption}
-              onChange={(event) => setSortOption(event.target.value as SortOption)}
+              onChange={(event) => setSortOption(event.target.value as SortOption | "")}
               className={SELECT_CLASSNAME}
             >
+              <option value="">おすすめ順</option>
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -257,104 +217,20 @@ export function EngineerList({ engineers }: EngineerListProps) {
           <ul className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {filteredEngineers.map((engineer) => (
               <li key={engineer.id}>
-                <EngineerCard
-                  engineer={engineer}
-                  isFavorited={favoritedIds.has(engineer.id)}
-                  isScouted={scoutedIds.has(engineer.id)}
-                  onToggleFavorite={handleToggleFavorite}
-                  onScout={handleScout}
-                />
+                <EngineerCard engineer={engineer} />
               </li>
             ))}
           </ul>
-        )}
-
-        {filteredEngineers.length > 0 && (
-          <nav aria-label="ページネーション" className="flex items-center justify-center gap-1.5">
-            <button
-              type="button"
-              aria-disabled="true"
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-              前へ
-            </button>
-            {[1, 2, 3].map((page) => (
-              <button
-                key={page}
-                type="button"
-                aria-disabled={page !== 1 ? "true" : undefined}
-                aria-current={page === 1 ? "page" : undefined}
-                aria-label={`ページ ${page}`}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none ${
-                  page === 1
-                    ? "bg-primary text-white"
-                    : "border border-border text-foreground hover:bg-muted"
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-            <button
-              type="button"
-              aria-disabled="true"
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-              次へ
-            </button>
-          </nav>
         )}
       </div>
 
       <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-1 lg:self-start">
-        <EngineerSearchFilters filters={filters} onChange={updateFilters} />
-
-        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-foreground">
-            {SIDEBAR_LABELS.favoritesTitle}
-          </h2>
-          {favoritedEngineers.length > 0 ? (
-            <ul className="mt-4 flex flex-col divide-y divide-border">
-              {favoritedEngineers.map((engineer) => (
-                <li key={engineer.id} className="py-3 first:pt-0 last:pb-0">
-                  <Link
-                    href={`/company/engineers/${engineer.id}`}
-                    className="block min-w-0 rounded-lg transition-colors duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-                  >
-                    <p className="truncate text-sm font-semibold text-foreground">
-                      {engineer.name}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {engineer.title}
-                    </p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-4 text-sm text-muted-foreground">
-              {SIDEBAR_LABELS.favoritesEmptyMessage}
-            </p>
-          )}
-        </div>
-
-        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-foreground">
-            {SIDEBAR_LABELS.recentSearchesTitle}
-          </h2>
-          <ul className="mt-4 flex flex-col gap-2">
-            {RECENT_SEARCHES.map((entry) => (
-              <li key={entry}>
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery(entry)}
-                  className="w-full truncate rounded-lg border border-border px-3 py-2 text-left text-xs text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-                >
-                  {entry}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <EngineerSearchFilters
+          filters={filters}
+          onChange={updateFilters}
+          prefectureOptions={prefectureOptions}
+          skillOptions={skillOptions}
+        />
       </div>
 
       <EngineerFilterDrawer
@@ -363,19 +239,9 @@ export function EngineerList({ engineers }: EngineerListProps) {
         filters={filters}
         onChange={updateFilters}
         resultCount={filteredEngineers.length}
+        prefectureOptions={prefectureOptions}
+        skillOptions={skillOptions}
       />
-
-      {toastMessage && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 sm:justify-end sm:pr-6"
-        >
-          <div className="max-w-sm rounded-xl bg-foreground px-4 py-3 text-sm font-medium text-white shadow-lg">
-            {toastMessage}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

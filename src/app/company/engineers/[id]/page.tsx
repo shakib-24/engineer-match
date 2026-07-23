@@ -1,36 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, GraduationCap } from "lucide-react";
+import { ArrowLeft, Briefcase, MessageSquareOff, Users } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import {
-  EngineerActionProvider,
-  EngineerProfileHero,
-  EngineerStickyActions,
-} from "@/components/company/engineers/EngineerProfileHero";
+import { EngineerProfileHero } from "@/components/company/engineers/EngineerProfileHero";
 import { EngineerProfileOverview } from "@/components/company/engineers/EngineerProfileOverview";
-import { EngineerProfileSkills } from "@/components/company/engineers/EngineerProfileSkills";
-import { EngineerProfileExperience } from "@/components/company/engineers/EngineerProfileExperience";
-import { EngineerProfileCertifications } from "@/components/company/engineers/EngineerProfileCertifications";
-import { EngineerProfilePortfolio } from "@/components/company/engineers/EngineerProfilePortfolio";
-import { EngineerLanguageSkills } from "@/components/company/engineers/EngineerLanguageSkills";
-import { EngineerPreferredConditions } from "@/components/company/engineers/EngineerPreferredConditions";
+import { ApplicantSkills } from "@/components/company/applicants/ApplicantSkills";
+import { ApplicantQualifications } from "@/components/company/applicants/ApplicantQualifications";
+import { ApplicantAssessmentSummary } from "@/components/company/applicants/ApplicantAssessmentSummary";
 import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
-import { ENGINEER_DETAIL_META, ENGINEERS } from "@/constants/company-engineers";
+import { ENGINEER_DETAIL_META } from "@/constants/company-engineers";
+import { createClient } from "@/lib/supabase/server";
+import { getSearchableEngineerDetail } from "@/lib/company/engineers";
 
 interface EngineerDetailPageProps {
   params: Promise<{ id: string }>;
-}
-
-export function generateStaticParams() {
-  return ENGINEERS.map((engineer) => ({ id: engineer.id }));
 }
 
 export async function generateMetadata({
   params,
 }: EngineerDetailPageProps): Promise<Metadata> {
   const { id } = await params;
-  const engineer = ENGINEERS.find((item) => item.id === id);
+  const supabase = await createClient();
+  const engineer = await getSearchableEngineerDetail(supabase, id);
 
   return {
     title: engineer ? `${engineer.name} | ENGINEER MATCH` : "エンジニア詳細 | ENGINEER MATCH",
@@ -41,7 +33,8 @@ export default async function CompanyEngineerDetailPage({
   params,
 }: EngineerDetailPageProps) {
   const { id } = await params;
-  const engineer = ENGINEERS.find((item) => item.id === id);
+  const supabase = await createClient();
+  const engineer = await getSearchableEngineerDetail(supabase, id);
 
   if (!engineer) {
     notFound();
@@ -67,54 +60,39 @@ export default async function CompanyEngineerDetailPage({
         </Link>
       </div>
 
-      <EngineerActionProvider
-        initialFavorited={engineer.isFavorited}
-        initialScouted={engineer.isScouted}
-      >
-        <EngineerProfileHero engineer={engineer} />
+      <EngineerProfileHero engineer={engineer} />
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
-            <EngineerProfileOverview engineer={engineer} />
-            <EngineerProfileSkills
-              technicalSkills={engineer.technicalSkills}
-              humanSkills={engineer.humanSkills}
-              businessSkills={engineer.businessSkills}
-            />
-            <EngineerProfileExperience workHistory={engineer.workHistory} />
-            <EngineerProfileCertifications certifications={engineer.certifications} />
-            <EngineerProfilePortfolio portfolio={engineer.portfolio} />
-            <EngineerLanguageSkills languages={engineer.languages} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+          <EngineerProfileOverview engineer={engineer} />
+          <ApplicantSkills skills={engineer.technicalSkills} />
+          <ApplicantQualifications qualifications={engineer.qualifications} />
+          <ApplicantAssessmentSummary
+            title={ENGINEER_DETAIL_META.humanSkillTitle}
+            icon={Users}
+            items={engineer.humanAssessments}
+          />
+          <ApplicantAssessmentSummary
+            title={ENGINEER_DETAIL_META.businessSkillTitle}
+            icon={Briefcase}
+            items={engineer.businessAssessments}
+          />
+        </div>
 
-            <section className="rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-8">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <GraduationCap className="h-5 w-5 text-primary" aria-hidden="true" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground">
-                  {ENGINEER_DETAIL_META.educationTitle}
-                </h3>
-              </div>
-              <dl className="mt-5 flex flex-col gap-4">
-                {engineer.education.map((item) => (
-                  <div key={item.school}>
-                    <dt className="text-sm font-semibold text-foreground">{item.school}</dt>
-                    <dd className="mt-0.5 text-xs text-muted-foreground">
-                      {item.department} ・ {item.period}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-
-            <EngineerPreferredConditions engineer={engineer} />
-          </div>
-
-          <div className="lg:sticky lg:top-24 lg:col-span-1 lg:self-start">
-            <EngineerStickyActions engineer={engineer} />
+        <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-1 lg:self-start">
+          <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+            <button
+              type="button"
+              disabled
+              className="inline-flex h-11 w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-xl border border-border bg-muted text-sm font-semibold text-muted-foreground"
+            >
+              <MessageSquareOff className="h-4 w-4" aria-hidden="true" />
+              メッセージを送る
+            </button>
+            <p className="mt-3 text-xs text-muted-foreground">{ENGINEER_DETAIL_META.contactNote}</p>
           </div>
         </div>
-      </EngineerActionProvider>
+      </div>
     </DashboardShell>
   );
 }

@@ -5,6 +5,7 @@ import type { EngineerFilterState } from "@/components/company/engineers/Enginee
 import {
   ACTIVE_FILTERS_LABELS,
   EXPERIENCE_BUCKET_OPTIONS,
+  WORK_STYLE_FILTER_OPTIONS,
 } from "@/constants/company-engineers";
 
 interface Chip {
@@ -38,36 +39,21 @@ export function EngineerActiveFilters({
     });
   }
 
-  for (const value of filters.contractTypes) {
+  for (const value of filters.prefectures) {
     chips.push({
-      key: `contract-${value}`,
+      key: `prefecture-${value}`,
       label: value,
       onRemove: () =>
-        onFilterChange({ contractTypes: filters.contractTypes.filter((item) => item !== value) }),
-    });
-  }
-  for (const value of filters.locations) {
-    chips.push({
-      key: `location-${value}`,
-      label: value,
-      onRemove: () =>
-        onFilterChange({ locations: filters.locations.filter((item) => item !== value) }),
+        onFilterChange({ prefectures: filters.prefectures.filter((item) => item !== value) }),
     });
   }
   for (const value of filters.workStyles) {
+    const option = WORK_STYLE_FILTER_OPTIONS.find((item) => item.value === value);
     chips.push({
       key: `work-style-${value}`,
-      label: value,
+      label: option?.label ?? value,
       onRemove: () =>
         onFilterChange({ workStyles: filters.workStyles.filter((item) => item !== value) }),
-    });
-  }
-  for (const value of filters.categories) {
-    chips.push({
-      key: `category-${value}`,
-      label: value,
-      onRemove: () =>
-        onFilterChange({ categories: filters.categories.filter((item) => item !== value) }),
     });
   }
   for (const value of filters.skills) {
@@ -85,31 +71,15 @@ export function EngineerActiveFilters({
         onFilterChange({ itssLevels: filters.itssLevels.filter((item) => item !== value) }),
     });
   }
-  if (filters.experienceBucket !== null) {
-    const option = EXPERIENCE_BUCKET_OPTIONS.find((item) => item.value === filters.experienceBucket);
+  if (filters.experienceMin !== null) {
+    const option = EXPERIENCE_BUCKET_OPTIONS.find((item) => item.value === filters.experienceMin);
     if (option) {
       chips.push({
         key: "experience",
         label: option.label,
-        onRemove: () => onFilterChange({ experienceBucket: null }),
+        onRemove: () => onFilterChange({ experienceMin: null }),
       });
     }
-  }
-  for (const value of filters.availability) {
-    chips.push({
-      key: `availability-${value}`,
-      label: value,
-      onRemove: () =>
-        onFilterChange({ availability: filters.availability.filter((item) => item !== value) }),
-    });
-  }
-  for (const value of filters.languages) {
-    chips.push({
-      key: `language-${value}`,
-      label: value,
-      onRemove: () =>
-        onFilterChange({ languages: filters.languages.filter((item) => item !== value) }),
-    });
   }
 
   if (chips.length === 0) {
