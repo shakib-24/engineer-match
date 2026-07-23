@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { PROFILE_COMPLETION } from "@/constants/engineer-profile";
+import { PROFILE_COMPLETION_META } from "@/constants/engineer-profile";
 
-export function ProfileCompletion() {
-  const { title, percentage, description, missingItems, ctaLabel, ctaHref } =
-    PROFILE_COMPLETION;
+interface ProfileCompletionProps {
+  percentage: number;
+  missingItems: string[];
+}
+
+export function ProfileCompletion({ percentage, missingItems }: ProfileCompletionProps) {
+  const { title, description, ctaLabel, ctaHref } = PROFILE_COMPLETION_META;
 
   return (
     <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
