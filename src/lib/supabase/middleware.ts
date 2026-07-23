@@ -1,6 +1,25 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnv } from "./env";
+import { ACTIVE_STATUS, getDashboardPathForRole, getUserAccount } from "@/lib/auth/account";
+
+/**
+ * Role required to access a given pathname, keyed by top-level route prefix.
+ * Only /engineer, /company, /admin are gated today — other routes (/, /login,
+ * /signup, /messages, /notifications, etc.) are intentionally left alone.
+ */
+const PROTECTED_PREFIXES: ReadonlyArray<{ prefix: string; role: string }> = [
+  { prefix: "/engineer", role: "ENGINEER" },
+  { prefix: "/company", role: "COMPANY" },
+  { prefix: "/admin", role: "ADMIN" },
+];
+
+function getRequiredRole(pathname: string): string | null {
+  const match = PROTECTED_PREFIXES.find(
+    ({ prefix }) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  return match?.role ?? null;
+}
 
 /**
  * Refreshes the Supabase auth session on every request and keeps the
@@ -11,6 +30,11 @@ import { getSupabaseEnv } from "./env";
  * Uses supabase.auth.getUser(), not getSession() — getUser() revalidates the
  * token against Supabase Auth on every call instead of trusting whatever is
  * in the (possibly stale or tampered) cookie.
+ *
+ * Also enforces role/status-based route protection for /engineer, /company,
+ * and /admin: the role and ACTIVE status are always re-read from
+ * public.users here (never trusted from client state), matching the same
+ * getUserAccount() helper already used by the login/signup pages.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -34,7 +58,48 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const requiredRole = getRequiredRole(request.nextUrl.pathname);
+  if (!requiredRole) {
+    return supabaseResponse;
+  }
+
+  // Redirects must carry over any refreshed session cookies from
+  // supabaseResponse, or a token refresh that happened during getUser()
+  // above would be silently dropped.
+  function redirectTo(path: string) {
+    const redirectResponse = NextResponse.redirect(new URL(path, request.url));
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+    return redirectResponse;
+  }
+
+  if (!user) {
+    return redirectTo("/login");
+  }
+
+  const account = await getUserAccount(supabase, user.id);
+
+  // No public.users row, or not ACTIVE (SUSPENDED/WITHDRAWN): never allowed
+  // into a protected dashboard. Sent to /login rather than signed out here —
+  // the login page itself already renders correctly for this exact state
+  // (authenticated but inactive/unrecognized account falls through to the
+  // login form instead of redirecting, see src/app/login/page.tsx).
+  if (!account || account.status !== ACTIVE_STATUS) {
+    return redirectTo("/login");
+  }
+
+  if (account.role !== requiredRole) {
+    // Wrong role for this area: send them to their own dashboard instead.
+    // getDashboardPathForRole() returns null for roles with no dashboard yet
+    // (e.g. INSTRUCTOR) — fall back to /login, which already renders the
+    // "no dashboard for this role" state correctly for that case.
+    return redirectTo(getDashboardPathForRole(account.role) ?? "/login");
+  }
 
   return supabaseResponse;
 }

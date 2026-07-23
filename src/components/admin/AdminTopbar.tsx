@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { AdminNavLinks, type AdminNavItem } from "@/components/admin/AdminSidebar";
+import { UserMenu } from "@/components/dashboard/UserMenu";
 import { ADMIN_BRAND, ADMIN_LABELS } from "@/constants/admin";
 import { cn } from "@/lib/utils";
 
@@ -43,14 +44,7 @@ export function AdminTopbar({
           </h1>
         </div>
 
-        <div className="flex items-center gap-2 rounded-full border border-border py-1.5 pr-3 pl-1.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-            {userInitials}
-          </div>
-          <span className="hidden text-sm font-medium text-foreground sm:inline">
-            {userName}
-          </span>
-        </div>
+        <UserMenu userName={userName} userInitials={userInitials} />
       </header>
 
       <div
