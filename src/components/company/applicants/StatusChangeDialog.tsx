@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
-import { ArrowRight, CircleCheck } from "lucide-react";
-import {
-  STATUS_CHANGE_DIALOG_LABELS,
-  type ApplicantStatus,
-} from "@/constants/company-applicants";
+import { ArrowRight, CircleCheck, Loader2 } from "lucide-react";
+import { APPLICATION_STATUS_LABELS, STATUS_CHANGE_DIALOG_LABELS } from "@/constants/company-applicants";
+import type { ApplicationStatus } from "@/lib/company/applicants";
 
 interface StatusChangeDialogProps {
   isOpen: boolean;
-  currentStatus: ApplicantStatus;
-  nextStatus: ApplicantStatus;
+  currentStatus: ApplicationStatus;
+  nextStatus: ApplicationStatus;
+  isSubmitting: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -19,6 +18,7 @@ export function StatusChangeDialog({
   isOpen,
   currentStatus,
   nextStatus,
+  isSubmitting,
   onCancel,
   onConfirm,
 }: StatusChangeDialogProps) {
@@ -68,9 +68,11 @@ export function StatusChangeDialog({
               {STATUS_CHANGE_DIALOG_LABELS.descriptionPrefix}
             </p>
             <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
-              <span className="text-muted-foreground">{currentStatus}</span>
+              <span className="text-muted-foreground">
+                {APPLICATION_STATUS_LABELS[currentStatus]}
+              </span>
               <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <span className="text-primary">{nextStatus}</span>
+              <span className="text-primary">{APPLICATION_STATUS_LABELS[nextStatus]}</span>
             </div>
           </div>
         </div>
@@ -79,7 +81,8 @@ export function StatusChangeDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+            disabled={isSubmitting}
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             {STATUS_CHANGE_DIALOG_LABELS.cancelLabel}
           </button>
@@ -87,8 +90,11 @@ export function StatusChangeDialog({
             type="button"
             ref={confirmButtonRef}
             onClick={onConfirm}
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-70"
           >
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
             {STATUS_CHANGE_DIALOG_LABELS.confirmLabel}
           </button>
         </div>

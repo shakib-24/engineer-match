@@ -1,11 +1,19 @@
 import Link from "next/link";
 import { CalendarDays, MapPin } from "lucide-react";
-import { ItssBadge } from "@/components/engineer/profile/ItssBadge";
 import { ApplicantStatusBadge } from "@/components/company/applicants/ApplicantStatusBadge";
-import { APPLICANT_LIST_META, type Applicant } from "@/constants/company-applicants";
+import type { ApplicantListItem } from "@/lib/company/applicants";
+import { APPLICANT_LIST_META } from "@/constants/company-applicants";
 
 interface ApplicantCardProps {
-  applicant: Applicant;
+  applicant: ApplicantListItem;
+}
+
+function formatAppliedDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 export function ApplicantCard({ applicant }: ApplicantCardProps) {
@@ -17,14 +25,14 @@ export function ApplicantCard({ applicant }: ApplicantCardProps) {
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary"
             aria-hidden="true"
           >
-            {applicant.photoInitials}
+            {applicant.name.slice(0, 1)}
           </div>
           <div className="min-w-0">
             <h3 className="truncate text-base font-semibold text-foreground">
               {applicant.name}
             </h3>
             <p className="mt-0.5 truncate text-sm text-muted-foreground">
-              {applicant.appliedJobTitle}
+              {applicant.opportunityTitle}
             </p>
           </div>
         </div>
@@ -32,35 +40,37 @@ export function ApplicantCard({ applicant }: ApplicantCardProps) {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
-        <span className="text-xs text-muted-foreground">
-          経験 {applicant.experienceYears}年
-        </span>
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-          {applicant.location}
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-          <ItssBadge level={applicant.itssLevel} size="sm" />
-          ITSSレベル{applicant.itssLevel}
-        </span>
+        {applicant.yearsOfExperience !== null && (
+          <span className="text-xs text-muted-foreground">
+            経験 {applicant.yearsOfExperience}年
+          </span>
+        )}
+        {applicant.prefecture && (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
+            {applicant.prefecture}
+          </span>
+        )}
       </div>
 
-      <ul className="mt-3 flex flex-wrap gap-1.5">
-        {applicant.skills.slice(0, 5).map((skill) => (
-          <li
-            key={skill}
-            className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
-          >
-            {skill}
-          </li>
-        ))}
-      </ul>
+      {applicant.skills.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-1.5">
+          {applicant.skills.slice(0, 5).map((skill) => (
+            <li
+              key={skill}
+              className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+            >
+              {skill}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="mt-5 flex items-center justify-between gap-3">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
           {APPLICANT_LIST_META.appliedPrefix}
-          {applicant.appliedDateLabel}
+          {formatAppliedDate(applicant.appliedAt)}
         </span>
         <Link
           href={`/company/applicants/${applicant.id}`}

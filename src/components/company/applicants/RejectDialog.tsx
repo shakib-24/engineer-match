@@ -1,48 +1,29 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import { TriangleAlert } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  REJECT_DIALOG_LABELS,
-  REJECT_REASON_OPTIONS,
-} from "@/constants/company-applicants";
-
-const SELECT_CLASS =
-  "h-9 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+import { useEffect, useId, useRef } from "react";
+import { Loader2, TriangleAlert } from "lucide-react";
+import { REJECT_DIALOG_LABELS } from "@/constants/company-applicants";
 
 interface RejectDialogProps {
   isOpen: boolean;
+  isSubmitting: boolean;
   onCancel: () => void;
-  onConfirm: (reason: string, comment: string) => void;
+  onConfirm: () => void;
 }
 
-export function RejectDialog({ isOpen, onCancel, onConfirm }: RejectDialogProps) {
+/**
+ * No reason/comment fields — applications has no column to persist them
+ * (only status/applied_at/timestamps), so collecting that input would look
+ * saved but silently discard it. Confirmation only.
+ */
+export function RejectDialog({ isOpen, isSubmitting, onCancel, onConfirm }: RejectDialogProps) {
   const titleId = useId();
-  const reasonSelectRef = useRef<HTMLSelectElement>(null);
-  const [reason, setReason] = useState<string>(REJECT_REASON_OPTIONS[0]);
-  const [comment, setComment] = useState("");
-
-  function resetForm() {
-    setReason(REJECT_REASON_OPTIONS[0]);
-    setComment("");
-  }
-
-  function handleCancel() {
-    resetForm();
-    onCancel();
-  }
-
-  function handleConfirm() {
-    onConfirm(reason, comment);
-    resetForm();
-  }
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    reasonSelectRef.current?.focus();
+    confirmButtonRef.current?.focus();
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -61,7 +42,7 @@ export function RejectDialog({ isOpen, onCancel, onConfirm }: RejectDialogProps)
       <button
         type="button"
         aria-label={REJECT_DIALOG_LABELS.cancelLabel}
-        onClick={handleCancel}
+        onClick={onCancel}
         className="absolute inset-0 bg-black/40"
       />
       <div
@@ -84,48 +65,24 @@ export function RejectDialog({ isOpen, onCancel, onConfirm }: RejectDialogProps)
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="reject-reason">{REJECT_DIALOG_LABELS.reasonLabel}</Label>
-            <select
-              id="reject-reason"
-              ref={reasonSelectRef}
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              className={SELECT_CLASS}
-            >
-              {REJECT_REASON_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="reject-comment">{REJECT_DIALOG_LABELS.commentLabel}</Label>
-            <Textarea
-              id="reject-comment"
-              value={comment}
-              placeholder={REJECT_DIALOG_LABELS.commentPlaceholder}
-              onChange={(event) => setComment(event.target.value)}
-              rows={3}
-            />
-          </div>
-        </div>
-
         <div className="flex justify-end gap-3">
           <button
             type="button"
-            onClick={handleCancel}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             {REJECT_DIALOG_LABELS.cancelLabel}
           </button>
           <button
             type="button"
-            onClick={handleConfirm}
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 focus-visible:outline-none"
+            ref={confirmButtonRef}
+            onClick={onConfirm}
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-70"
           >
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
             {REJECT_DIALOG_LABELS.confirmLabel}
           </button>
         </div>

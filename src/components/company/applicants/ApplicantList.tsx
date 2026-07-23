@@ -8,11 +8,11 @@ import {
   type ApplicantFiltersState,
 } from "@/components/company/applicants/ApplicantFilters";
 import { ApplicantCard } from "@/components/company/applicants/ApplicantCard";
+import type { ApplicantListItem } from "@/lib/company/applicants";
 import {
   APPLICANT_LIST_META,
   EMPTY_STATE_LABELS,
   FILTERED_EMPTY_STATE_LABELS,
-  type Applicant,
   type SortOption,
 } from "@/constants/company-applicants";
 
@@ -20,12 +20,11 @@ const DEFAULT_FILTERS: ApplicantFiltersState = {
   status: "all",
   appliedJob: "all",
   experienceYears: null,
-  itssLevel: "all",
   location: "all",
 };
 
 interface ApplicantListProps {
-  applicants: Applicant[];
+  applicants: ApplicantListItem[];
 }
 
 export function ApplicantList({ applicants }: ApplicantListProps) {
@@ -47,11 +46,18 @@ export function ApplicantList({ applicants }: ApplicantListProps) {
     filters.status !== "all" ||
     filters.appliedJob !== "all" ||
     filters.experienceYears !== null ||
-    filters.itssLevel !== "all" ||
     filters.location !== "all";
 
   const appliedJobOptions = useMemo(
-    () => Array.from(new Set(applicants.map((item) => item.appliedJobTitle))).sort(),
+    () => Array.from(new Set(applicants.map((item) => item.opportunityTitle))).sort(),
+    [applicants],
+  );
+
+  const locationOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(applicants.map((item) => item.prefecture).filter((v): v is string => !!v)),
+      ).sort(),
     [applicants],
   );
 
@@ -60,35 +66,31 @@ export function ApplicantList({ applicants }: ApplicantListProps) {
 
     const filtered = applicants.filter((applicant) => {
       if (query) {
-        const haystack = `${applicant.name} ${applicant.appliedJobTitle} ${applicant.skills.join(" ")}`.toLowerCase();
+        const haystack =
+          `${applicant.name} ${applicant.opportunityTitle} ${applicant.skills.join(" ")}`.toLowerCase();
         if (!haystack.includes(query)) return false;
       }
       if (filters.status !== "all" && applicant.status !== filters.status) return false;
-      if (filters.appliedJob !== "all" && applicant.appliedJobTitle !== filters.appliedJob)
+      if (filters.appliedJob !== "all" && applicant.opportunityTitle !== filters.appliedJob)
         return false;
       if (
         filters.experienceYears !== null &&
-        applicant.experienceYears < filters.experienceYears
+        (applicant.yearsOfExperience ?? 0) < filters.experienceYears
       )
         return false;
-      if (filters.itssLevel !== "all" && applicant.itssLevel !== filters.itssLevel)
-        return false;
-      if (filters.location !== "all" && applicant.location !== filters.location)
-        return false;
+      if (filters.location !== "all" && applicant.prefecture !== filters.location) return false;
       return true;
     });
 
     const sorted = [...filtered].sort((a, b) => {
       switch (sortOption) {
         case "oldest":
-          return a.appliedDateISO.localeCompare(b.appliedDateISO);
+          return a.appliedAt.localeCompare(b.appliedAt);
         case "experience":
-          return b.experienceYears - a.experienceYears;
-        case "itss":
-          return b.itssLevel - a.itssLevel;
+          return (b.yearsOfExperience ?? 0) - (a.yearsOfExperience ?? 0);
         case "newest":
         default:
-          return b.appliedDateISO.localeCompare(a.appliedDateISO);
+          return b.appliedAt.localeCompare(a.appliedAt);
       }
     });
 
@@ -120,6 +122,7 @@ export function ApplicantList({ applicants }: ApplicantListProps) {
         sortOption={sortOption}
         onSortChange={setSortOption}
         appliedJobOptions={appliedJobOptions}
+        locationOptions={locationOptions}
         hasActiveFilters={hasActiveFilters}
         onReset={handleReset}
       />

@@ -1,50 +1,59 @@
-import { Mail, MapPin, Phone } from "lucide-react";
-import { ItssBadge } from "@/components/engineer/profile/ItssBadge";
-import { APPLICANT_DETAIL_META, type Applicant } from "@/constants/company-applicants";
+import { Mail, MapPin } from "lucide-react";
+import { WORK_STYLE_LABEL } from "@/constants/jobs";
+import { APPLICANT_DETAIL_META } from "@/constants/company-applicants";
+import type { ApplicantDetail } from "@/lib/company/applicants";
 
 interface ApplicantProfileCardProps {
-  applicant: Applicant;
+  applicant: ApplicantDetail;
 }
 
 export function ApplicantProfileCard({ applicant }: ApplicantProfileCardProps) {
+  const hasRateRange = applicant.desiredRateMin !== null && applicant.desiredRateMax !== null;
+
   return (
     <section className="rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-8">
       <h3 className="text-base font-semibold text-foreground">
         {APPLICANT_DETAIL_META.profileSummaryTitle}
       </h3>
 
-      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-        {applicant.bio}
-      </p>
+      {applicant.selfPr && (
+        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{applicant.selfPr}</p>
+      )}
 
       <dl className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <dt className="text-xs text-muted-foreground">現在の職種</dt>
-          <dd className="mt-1 text-sm font-medium text-foreground">
-            {applicant.currentTitle}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">経験年数</dt>
-          <dd className="mt-1 text-sm font-medium text-foreground">
-            {applicant.experienceYears}年
-          </dd>
-        </div>
-        <div>
-          <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-            勤務地
-          </dt>
-          <dd className="mt-1 text-sm font-medium text-foreground">
-            {applicant.location}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">ITSSレベル</dt>
-          <dd className="mt-1.5">
-            <ItssBadge level={applicant.itssLevel} size="sm" />
-          </dd>
-        </div>
+        {applicant.yearsOfExperience !== null && (
+          <div>
+            <dt className="text-xs text-muted-foreground">経験年数</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">
+              {applicant.yearsOfExperience}年
+            </dd>
+          </div>
+        )}
+        {applicant.prefecture && (
+          <div>
+            <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
+              勤務地
+            </dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">{applicant.prefecture}</dd>
+          </div>
+        )}
+        {applicant.workStyle && (
+          <div>
+            <dt className="text-xs text-muted-foreground">希望勤務形態</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">
+              {WORK_STYLE_LABEL[applicant.workStyle]}
+            </dd>
+          </div>
+        )}
+        {hasRateRange && (
+          <div>
+            <dt className="text-xs text-muted-foreground">希望単価</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">
+              {applicant.desiredRateMin}万円〜{applicant.desiredRateMax}万円/月
+            </dd>
+          </div>
+        )}
         <div className="min-w-0 sm:col-span-2">
           <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Mail className="h-3.5 w-3.5" aria-hidden="true" />
@@ -59,15 +68,21 @@ export function ApplicantProfileCard({ applicant }: ApplicantProfileCardProps) {
             </a>
           </dd>
         </div>
-        <div>
-          <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Phone className="h-3.5 w-3.5" aria-hidden="true" />
-            電話番号
-          </dt>
-          <dd className="mt-1 text-sm font-medium text-foreground">
-            {applicant.phone}
-          </dd>
-        </div>
+        {applicant.portfolioUrl && (
+          <div className="min-w-0 sm:col-span-2">
+            <dt className="text-xs text-muted-foreground">Portfolio URL</dt>
+            <dd className="mt-1 text-sm font-medium break-all">
+              <a
+                href={applicant.portfolioUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-2 transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
+                {applicant.portfolioUrl}
+              </a>
+            </dd>
+          </div>
+        )}
       </dl>
     </section>
   );

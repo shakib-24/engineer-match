@@ -1,14 +1,13 @@
 "use client";
 
 import { RotateCcw } from "lucide-react";
+import type { ApplicationStatus } from "@/lib/company/applicants";
 import {
-  APPLICANT_STATUSES,
+  APPLICATION_STATUSES,
+  APPLICATION_STATUS_LABELS,
   EXPERIENCE_FILTER_OPTIONS,
   FILTER_LABELS,
-  ITSS_LEVEL_OPTIONS,
-  LOCATION_OPTIONS,
   SORT_OPTIONS,
-  type ApplicantStatus,
   type SortOption,
 } from "@/constants/company-applicants";
 
@@ -16,10 +15,9 @@ const SELECT_CLASSNAME =
   "h-11 w-full min-w-0 max-w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none";
 
 export interface ApplicantFiltersState {
-  status: ApplicantStatus | "all";
+  status: ApplicationStatus | "all";
   appliedJob: string | "all";
   experienceYears: number | null;
-  itssLevel: number | "all";
   location: string | "all";
 }
 
@@ -29,6 +27,7 @@ interface ApplicantFiltersProps {
   sortOption: SortOption;
   onSortChange: (value: SortOption) => void;
   appliedJobOptions: string[];
+  locationOptions: string[];
   hasActiveFilters: boolean;
   onReset: () => void;
 }
@@ -39,6 +38,7 @@ export function ApplicantFilters({
   sortOption,
   onSortChange,
   appliedJobOptions,
+  locationOptions,
   hasActiveFilters,
   onReset,
 }: ApplicantFiltersProps) {
@@ -56,14 +56,14 @@ export function ApplicantFilters({
             id="applicant-status-filter"
             value={filters.status}
             onChange={(event) =>
-              onChange({ status: event.target.value as ApplicantStatus | "all" })
+              onChange({ status: event.target.value as ApplicationStatus | "all" })
             }
             className={SELECT_CLASSNAME}
           >
             <option value="all">{FILTER_LABELS.statusAllLabel}</option>
-            {APPLICANT_STATUSES.map((status) => (
+            {APPLICATION_STATUSES.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {APPLICATION_STATUS_LABELS[status]}
               </option>
             ))}
           </select>
@@ -116,33 +116,6 @@ export function ApplicantFilters({
           </select>
         </div>
 
-        <div className="w-full shrink-0 sm:w-32">
-          <label
-            htmlFor="applicant-itss-filter"
-            className="mb-1.5 block text-xs font-medium text-muted-foreground"
-          >
-            {FILTER_LABELS.itssLabel}
-          </label>
-          <select
-            id="applicant-itss-filter"
-            value={filters.itssLevel}
-            onChange={(event) =>
-              onChange({
-                itssLevel:
-                  event.target.value === "all" ? "all" : Number(event.target.value),
-              })
-            }
-            className={SELECT_CLASSNAME}
-          >
-            <option value="all">{FILTER_LABELS.itssAllLabel}</option>
-            {ITSS_LEVEL_OPTIONS.map((level) => (
-              <option key={level} value={level}>
-                {level}
-              </option>
-            ))}
-          </select>
-        </div>
-
         <div className="w-full shrink-0 sm:w-36">
           <label
             htmlFor="applicant-location-filter"
@@ -157,7 +130,7 @@ export function ApplicantFilters({
             className={SELECT_CLASSNAME}
           >
             <option value="all">{FILTER_LABELS.locationAllLabel}</option>
-            {LOCATION_OPTIONS.map((location) => (
+            {locationOptions.map((location) => (
               <option key={location} value={location}>
                 {location}
               </option>

@@ -1,22 +1,26 @@
 "use client";
 
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { ShieldX, Workflow } from "lucide-react";
+import { Loader2, ShieldX, Workflow } from "lucide-react";
 import { StatusChangeDialog } from "@/components/company/applicants/StatusChangeDialog";
 import { RejectDialog } from "@/components/company/applicants/RejectDialog";
 import {
-  ACTIVE_STATUSES,
   APPLICANT_DETAIL_META,
-  APPLICANT_STATUS_BADGE_STYLES,
-  REJECT_DIALOG_LABELS,
-  STATUS_CHANGE_DIALOG_LABELS,
-  STATUS_NEXT_STEP,
-  type ApplicantStatus,
+  APPLICATION_STATUS_BADGE_STYLES,
+  APPLICATION_STATUS_LABELS,
+  STATUS_ACTION_LABELS,
 } from "@/constants/company-applicants";
+import {
+  COMPANY_REJECTABLE_STATUSES,
+  STATUS_NEXT_STEP,
+  updateApplicationStatus,
+  type ApplicationStatus,
+} from "@/lib/company/applicants";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface ApplicantStatusBadgeProps {
-  status: ApplicantStatus;
+  status: ApplicationStatus;
   className?: string;
 }
 
@@ -25,26 +29,30 @@ export function ApplicantStatusBadge({ status, className }: ApplicantStatusBadge
     <span
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-        APPLICANT_STATUS_BADGE_STYLES[status],
+        APPLICATION_STATUS_BADGE_STYLES[status],
         className,
       )}
     >
-      {status}
+      {APPLICATION_STATUS_LABELS[status]}
     </span>
   );
 }
 
 /**
- * Shares the (locally mutable, unpersisted) applicant status between the
- * Hero badge / Timeline in the main column and the status-change / reject
- * actions, so a change is reflected consistently across the detail page.
+ * Shares the real (Supabase-persisted) applicant status between the hero
+ * badge and the status-change / reject actions elsewhere on the detail page.
+ * Every transition here calls updateApplicationStatus() — nothing is
+ * client-only or unpersisted, unlike the earlier mock version of this file.
  */
 const ApplicantStatusContext = createContext<{
-  status: ApplicantStatus;
-  setStatus: (status: ApplicantStatus) => void;
+  applicationId: string;
+  status: ApplicationStatus;
+  isSubmitting: boolean;
+  message: { tone: "success" | "error"; text: string } | null;
+  changeStatus: (next: ApplicationStatus) => Promise<void>;
 } | null>(null);
 
-export function useApplicantStatusContext() {
+function useApplicantStatusContext() {
   const context = useContext(ApplicantStatusContext);
   if (!context) {
     throw new Error(
@@ -55,18 +63,46 @@ export function useApplicantStatusContext() {
 }
 
 interface ApplicantStatusProviderProps {
-  initialStatus: ApplicantStatus;
+  applicationId: string;
+  initialStatus: ApplicationStatus;
   children: ReactNode;
 }
 
 export function ApplicantStatusProvider({
+  applicationId,
   initialStatus,
   children,
 }: ApplicantStatusProviderProps) {
-  const [status, setStatus] = useState<ApplicantStatus>(initialStatus);
+  const [status, setStatus] = useState<ApplicationStatus>(initialStatus);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(
+    null,
+  );
+
+  async function changeStatus(next: ApplicationStatus) {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setMessage(null);
+
+    const supabase = createClient();
+    const { error } = await updateApplicationStatus(supabase, applicationId, next);
+
+    setIsSubmitting(false);
+
+    if (error) {
+      console.error("[company-applicants] status update failed:", error);
+      setMessage({ tone: "error", text: STATUS_ACTION_LABELS.updateError });
+      return;
+    }
+
+    setStatus(next);
+    setMessage({ tone: "success", text: STATUS_ACTION_LABELS.updateSuccess });
+  }
 
   return (
-    <ApplicantStatusContext.Provider value={{ status, setStatus }}>
+    <ApplicantStatusContext.Provider
+      value={{ applicationId, status, isSubmitting, message, changeStatus }}
+    >
       {children}
     </ApplicantStatusContext.Provider>
   );
@@ -78,53 +114,56 @@ export function LiveApplicantStatusBadge() {
 }
 
 export function ApplicantStatusActions() {
-  const { status, setStatus } = useApplicantStatusContext();
+  const { status, isSubmitting, message, changeStatus } = useApplicantStatusContext();
   const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const nextStatus = STATUS_NEXT_STEP[status];
-  const canReject = ACTIVE_STATUSES.includes(status);
+  const canReject = COMPANY_REJECTABLE_STATUSES.includes(status);
 
-  function showToast(message: string) {
-    setToastMessage(message);
-    window.setTimeout(() => setToastMessage(null), 3000);
-  }
-
-  function handleConfirmChange() {
+  async function handleConfirmChange() {
     if (!nextStatus) return;
-    setStatus(nextStatus);
+    await changeStatus(nextStatus);
     setIsChangeDialogOpen(false);
-    showToast(STATUS_CHANGE_DIALOG_LABELS.toastMessage);
   }
 
-  function handleConfirmReject() {
-    setStatus("不採用");
+  async function handleConfirmReject() {
+    await changeStatus("rejected");
     setIsRejectDialogOpen(false);
-    showToast(REJECT_DIALOG_LABELS.toastMessage);
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      {nextStatus && (
-        <button
-          type="button"
-          onClick={() => setIsChangeDialogOpen(true)}
-          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-        >
-          <Workflow className="h-4 w-4" aria-hidden="true" />
-          {APPLICANT_DETAIL_META.changeStatusLabel}
-        </button>
-      )}
-      {canReject && (
-        <button
-          type="button"
-          onClick={() => setIsRejectDialogOpen(true)}
-          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 transition-colors duration-200 hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-        >
-          <ShieldX className="h-4 w-4" aria-hidden="true" />
-          {APPLICANT_DETAIL_META.rejectLabel}
-        </button>
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        {nextStatus && (
+          <button
+            type="button"
+            onClick={() => setIsChangeDialogOpen(true)}
+            disabled={isSubmitting}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Workflow className="h-4 w-4" aria-hidden="true" />
+            {APPLICANT_DETAIL_META.changeStatusLabel}
+          </button>
+        )}
+        {canReject && (
+          <button
+            type="button"
+            onClick={() => setIsRejectDialogOpen(true)}
+            disabled={isSubmitting}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 transition-colors duration-200 hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <ShieldX className="h-4 w-4" aria-hidden="true" />
+            {APPLICANT_DETAIL_META.rejectLabel}
+          </button>
+        )}
+      </div>
+
+      {isSubmitting && (
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          {STATUS_ACTION_LABELS.updating}
+        </span>
       )}
 
       {nextStatus && (
@@ -132,6 +171,7 @@ export function ApplicantStatusActions() {
           isOpen={isChangeDialogOpen}
           currentStatus={status}
           nextStatus={nextStatus}
+          isSubmitting={isSubmitting}
           onCancel={() => setIsChangeDialogOpen(false)}
           onConfirm={handleConfirmChange}
         />
@@ -139,18 +179,26 @@ export function ApplicantStatusActions() {
 
       <RejectDialog
         isOpen={isRejectDialogOpen}
+        isSubmitting={isSubmitting}
         onCancel={() => setIsRejectDialogOpen(false)}
         onConfirm={handleConfirmReject}
       />
 
-      {toastMessage && (
+      {message && (
         <div
           role="status"
           aria-live="polite"
           className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 sm:justify-end sm:pr-6"
         >
-          <div className="flex items-center gap-2 rounded-xl bg-foreground px-4 py-3 text-sm font-medium text-white shadow-lg">
-            {toastMessage}
+          <div
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium shadow-lg",
+              message.tone === "success"
+                ? "bg-foreground text-white"
+                : "bg-red-600 text-white",
+            )}
+          >
+            {message.text}
           </div>
         </div>
       )}

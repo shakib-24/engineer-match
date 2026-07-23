@@ -1,6 +1,7 @@
 import { FileText, MessagesSquare, UserCheck, Users } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { SUMMARY_CARDS, type Applicant } from "@/constants/company-applicants";
+import type { ApplicantListItem } from "@/lib/company/applicants";
+import { SUMMARY_CARDS } from "@/constants/company-applicants";
 
 const ICON_MAP = {
   users: Users,
@@ -10,7 +11,7 @@ const ICON_MAP = {
 } as const;
 
 interface ApplicantSummaryCardsProps {
-  applicants: Applicant[];
+  applicants: ApplicantListItem[];
 }
 
 export function ApplicantSummaryCards({ applicants }: ApplicantSummaryCardsProps) {

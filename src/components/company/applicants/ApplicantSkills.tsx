@@ -1,8 +1,14 @@
 import { Code2 } from "lucide-react";
+import { ItssBadge } from "@/components/engineer/profile/ItssBadge";
 import { APPLICANT_DETAIL_META } from "@/constants/company-applicants";
 
+interface TechnicalSkillItem {
+  name: string;
+  level: number | null;
+}
+
 interface ApplicantSkillsProps {
-  skills: string[];
+  skills: TechnicalSkillItem[];
 }
 
 export function ApplicantSkills({ skills }: ApplicantSkillsProps) {
@@ -16,15 +22,25 @@ export function ApplicantSkills({ skills }: ApplicantSkillsProps) {
           {APPLICANT_DETAIL_META.skillsTitle}
         </h3>
       </div>
-      <ul className="mt-5 flex flex-wrap gap-1.5">
-        {skills.map((skill) => (
-          <li key={skill}>
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-              {skill}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {skills.length === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          {APPLICANT_DETAIL_META.noSkillsMessage}
+        </p>
+      ) : (
+        <ul className="mt-5 flex flex-wrap gap-2">
+          {skills.map((skill) => (
+            <li
+              key={skill.name}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pr-3 pl-1.5 text-xs font-medium text-primary"
+            >
+              {skill.level !== null && (
+                <ItssBadge level={skill.level as 1 | 2 | 3 | 4 | 5 | 6 | 7} size="sm" />
+              )}
+              {skill.name}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
