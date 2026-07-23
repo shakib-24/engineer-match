@@ -10,6 +10,11 @@ export function formatDateJa(iso: string): string {
   return dateFormatter.format(new Date(iso));
 }
 
+export function formatTimeJa(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getHours()}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
 export function formatRelativeDaysJa(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));

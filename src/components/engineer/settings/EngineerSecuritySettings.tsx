@@ -1,25 +1,51 @@
 "use client";
 
-import { useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { useId, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { SectionCard } from "@/components/dashboard/SectionCard";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-  ENGINEER_LOGIN_HISTORY,
-  ENGINEER_SECURITY_SETTINGS,
-  ENGINEER_SETTINGS_DEMO_NOTE,
-} from "@/constants/engineer-settings";
+import { ENGINEER_SECURITY_SETTINGS } from "@/constants/engineer-settings";
+import { createClient } from "@/lib/supabase/client";
 
 export function EngineerSecuritySettings() {
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState<boolean>(
-    ENGINEER_SECURITY_SETTINGS.twoFactor.defaultChecked,
+  const newPasswordId = useId();
+  const confirmPasswordId = useId();
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(
+    null,
   );
-  const [demoMessage, setDemoMessage] = useState<string | null>(null);
 
-  function showDemoNote() {
-    setDemoMessage(ENGINEER_SETTINGS_DEMO_NOTE);
-    window.setTimeout(() => setDemoMessage(null), 3000);
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setMessage(null);
+
+    if (newPassword.length < 8) {
+      setMessage({ type: "error", text: ENGINEER_SECURITY_SETTINGS.errorTooShort });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage({ type: "error", text: ENGINEER_SECURITY_SETTINGS.errorMismatch });
+      return;
+    }
+
+    setIsSubmitting(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setIsSubmitting(false);
+
+    if (error) {
+      console.error("[engineer-settings] failed to update password:", error);
+      setMessage({ type: "error", text: ENGINEER_SECURITY_SETTINGS.errorGeneric });
+      return;
+    }
+
+    setNewPassword("");
+    setConfirmPassword("");
+    setMessage({ type: "success", text: ENGINEER_SECURITY_SETTINGS.successMessage });
   }
 
   return (
@@ -27,101 +53,68 @@ export function EngineerSecuritySettings() {
       title={ENGINEER_SECURITY_SETTINGS.title}
       description={ENGINEER_SECURITY_SETTINGS.description}
     >
-      <div className="flex flex-col divide-y divide-border">
-        <div className="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-0">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">
-              {ENGINEER_SECURITY_SETTINGS.passwordChange.label}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {ENGINEER_SECURITY_SETTINGS.passwordChange.description}
-            </p>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={newPasswordId}>{ENGINEER_SECURITY_SETTINGS.newPasswordLabel}</Label>
+          <div className="relative">
+            <Input
+              id={newPasswordId}
+              type={visible ? "text" : "password"}
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              className="h-11 pr-11"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setVisible((v) => !v)}
+              aria-label={visible ? "パスワードを非表示にする" : "パスワードを表示する"}
+              aria-pressed={visible}
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+            >
+              {visible ? (
+                <EyeOff className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Eye className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={showDemoNote}
-            className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            {ENGINEER_SECURITY_SETTINGS.passwordChange.buttonLabel}
-          </button>
         </div>
 
-        <div className="flex items-center justify-between gap-4 py-4">
-          <div className="min-w-0">
-            <Label htmlFor="security-2fa" className="text-foreground">
-              {ENGINEER_SECURITY_SETTINGS.twoFactor.label}
-            </Label>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {ENGINEER_SECURITY_SETTINGS.twoFactor.description}
-            </p>
-          </div>
-          <Switch
-            id="security-2fa"
-            checked={twoFactorEnabled}
-            onCheckedChange={(checked) => {
-              setTwoFactorEnabled(checked);
-              showDemoNote();
-            }}
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={confirmPasswordId}>
+            {ENGINEER_SECURITY_SETTINGS.confirmPasswordLabel}
+          </Label>
+          <Input
+            id={confirmPasswordId}
+            type={visible ? "text" : "password"}
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            className="h-11"
+            required
           />
         </div>
 
-        <div className="py-4">
-          <p className="text-sm font-semibold text-foreground">
-            {ENGINEER_SECURITY_SETTINGS.loginHistory.label}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {ENGINEER_SECURITY_SETTINGS.loginHistory.description}
-          </p>
-          <ul className="mt-3 flex flex-col gap-2.5">
-            {ENGINEER_LOGIN_HISTORY.map((item) => (
-              <li
-                key={item.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">{item.device}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {item.location} ・ {item.dateLabel}
-                  </p>
-                </div>
-                {item.isCurrent && (
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
-                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                    {ENGINEER_SECURITY_SETTINGS.loginHistory.currentLabel}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-4 py-4 last:pb-0">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">
-              {ENGINEER_SECURITY_SETTINGS.sessionManagement.label}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {ENGINEER_SECURITY_SETTINGS.sessionManagement.description}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={showDemoNote}
-            className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            {ENGINEER_SECURITY_SETTINGS.sessionManagement.revokeAllLabel}
-          </button>
-        </div>
-      </div>
-
-      {demoMessage && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="mt-5 rounded-xl bg-muted px-4 py-3 text-xs text-muted-foreground"
+        <button
+          type="submit"
+          disabled={isSubmitting || newPassword === "" || confirmPassword === ""}
+          className="inline-flex h-10 w-fit items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {demoMessage}
-        </div>
+          {isSubmitting
+            ? ENGINEER_SECURITY_SETTINGS.submittingLabel
+            : ENGINEER_SECURITY_SETTINGS.submitLabel}
+        </button>
+      </form>
+
+      {message && (
+        <p
+          role={message.type === "error" ? "alert" : "status"}
+          className={`mt-4 text-sm font-medium ${message.type === "error" ? "text-red-600" : "text-green-700"}`}
+        >
+          {message.text}
+        </p>
       )}
     </SectionCard>
   );

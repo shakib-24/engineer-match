@@ -1,60 +1,111 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { ConversationList } from "@/components/messages/ConversationList";
-import { MessageThread } from "@/components/messages/MessageThread";
+import { EngineerConversationList } from "@/components/messages/EngineerConversationList";
+import { EngineerMessageThread } from "@/components/messages/EngineerMessageThread";
 import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
-import { CONVERSATIONS, MESSAGES_PAGE } from "@/constants/messages";
+import {
+  ENGINEER_CONVERSATION_NOT_FOUND_LABELS,
+  ENGINEER_MESSAGES_PAGE,
+  ENGINEER_MESSAGES_SIGN_IN_REQUIRED_LABELS,
+} from "@/constants/engineer-messages";
+import { createClient } from "@/lib/supabase/server";
+import { getOrCreateConversationForApplication, listMyConversations } from "@/lib/engineer/chat";
 
 interface ConversationPageProps {
   params: Promise<{ id: string }>;
 }
 
-export function generateStaticParams() {
-  return CONVERSATIONS.map((conversation) => ({ id: conversation.id }));
-}
-
-export async function generateMetadata({
-  params,
-}: ConversationPageProps): Promise<Metadata> {
-  const { id } = await params;
-  const conversation = CONVERSATIONS.find((item) => item.id === id);
-
-  return {
-    title: conversation
-      ? `${conversation.participantName} | ${MESSAGES_PAGE.title} | ENGINEER MATCH`
-      : `${MESSAGES_PAGE.title} | ENGINEER MATCH`,
-  };
-}
+export const metadata: Metadata = {
+  title: `${ENGINEER_MESSAGES_PAGE.title} | ENGINEER MATCH`,
+};
 
 export default async function ConversationPage({ params }: ConversationPageProps) {
   const { id } = await params;
-  const conversation = CONVERSATIONS.find((item) => item.id === id);
+  const user = USER_MENU.engineer;
+  const supabase = await createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
 
-  if (!conversation) {
-    notFound();
+  if (!authUser) {
+    return (
+      <DashboardShell
+        navItems={ENGINEER_NAV}
+        activeHref="/messages"
+        pageTitle={ENGINEER_MESSAGES_PAGE.title}
+        userName={user.name}
+        userInitials={user.initials}
+      >
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
+          <p className="text-sm font-semibold text-foreground">
+            {ENGINEER_MESSAGES_SIGN_IN_REQUIRED_LABELS.title}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {ENGINEER_MESSAGES_SIGN_IN_REQUIRED_LABELS.description}
+          </p>
+          <Link
+            href={ENGINEER_MESSAGES_SIGN_IN_REQUIRED_LABELS.ctaHref}
+            className="mt-2 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            {ENGINEER_MESSAGES_SIGN_IN_REQUIRED_LABELS.ctaLabel}
+          </Link>
+        </div>
+      </DashboardShell>
+    );
   }
 
-  const user = USER_MENU.engineer;
+  // Sequential, not Promise.all: getOrCreateConversationForApplication may
+  // insert a new chat_rooms row (lazy create on first message), and
+  // listMyConversations must see that row rather than racing ahead of it.
+  const conversation = await getOrCreateConversationForApplication(supabase, authUser.id, id);
+  const conversations = await listMyConversations(supabase, authUser.id);
+
+  if (!conversation) {
+    return (
+      <DashboardShell
+        navItems={ENGINEER_NAV}
+        activeHref="/messages"
+        pageTitle={ENGINEER_MESSAGES_PAGE.title}
+        userName={user.name}
+        userInitials={user.initials}
+      >
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
+          <p className="text-sm font-semibold text-foreground">
+            {ENGINEER_CONVERSATION_NOT_FOUND_LABELS.title}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {ENGINEER_CONVERSATION_NOT_FOUND_LABELS.description}
+          </p>
+          <Link
+            href={ENGINEER_CONVERSATION_NOT_FOUND_LABELS.ctaHref}
+            className="mt-2 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            {ENGINEER_CONVERSATION_NOT_FOUND_LABELS.ctaLabel}
+          </Link>
+        </div>
+      </DashboardShell>
+    );
+  }
 
   return (
     <DashboardShell
       navItems={ENGINEER_NAV}
       activeHref="/messages"
-      pageTitle={conversation.participantName}
+      pageTitle={conversation.companyName}
       userName={user.name}
       userInitials={user.initials}
     >
       <p className="hidden text-sm text-muted-foreground lg:block">
-        {MESSAGES_PAGE.description}
+        {ENGINEER_MESSAGES_PAGE.description}
       </p>
 
       <div className="grid grid-cols-1 gap-6 lg:h-[calc(100svh-220px)] lg:min-h-[520px] lg:grid-cols-[380px_1fr] lg:grid-rows-[minmax(0,1fr)]">
         <div className="hidden lg:block lg:h-full lg:min-h-0">
-          <ConversationList conversations={CONVERSATIONS} activeId={conversation.id} />
+          <EngineerConversationList conversations={conversations} activeId={id} />
         </div>
         <div className="h-[calc(100svh-160px)] min-h-[480px] lg:h-full lg:min-h-0">
-          <MessageThread conversation={conversation} />
+          <EngineerMessageThread conversation={conversation} currentUserId={authUser.id} />
         </div>
       </div>
     </DashboardShell>

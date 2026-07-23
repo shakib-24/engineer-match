@@ -1,26 +1,56 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { NotificationList } from "@/components/notifications/NotificationList";
+import { EngineerNotificationList } from "@/components/notifications/EngineerNotificationList";
 import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
-import { NOTIFICATIONS, NOTIFICATIONS_PAGE } from "@/constants/notifications";
+import {
+  ENGINEER_NOTIFICATIONS_PAGE,
+  ENGINEER_NOTIFICATIONS_SIGN_IN_REQUIRED_LABELS,
+} from "@/constants/engineer-notifications";
+import { createClient } from "@/lib/supabase/server";
+import { listMyNotifications } from "@/lib/engineer/notifications";
 
 export const metadata: Metadata = {
-  title: `${NOTIFICATIONS_PAGE.title} | ENGINEER MATCH`,
+  title: `${ENGINEER_NOTIFICATIONS_PAGE.title} | ENGINEER MATCH`,
 };
 
-export default function NotificationsPage() {
+export default async function NotificationsPage() {
   const user = USER_MENU.engineer;
+  const supabase = await createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
 
   return (
     <DashboardShell
       navItems={ENGINEER_NAV}
       activeHref="/notifications"
-      pageTitle={NOTIFICATIONS_PAGE.title}
+      pageTitle={ENGINEER_NOTIFICATIONS_PAGE.title}
       userName={user.name}
       userInitials={user.initials}
     >
-      <p className="text-sm text-muted-foreground">{NOTIFICATIONS_PAGE.description}</p>
-      <NotificationList initialNotifications={NOTIFICATIONS} />
+      <p className="text-sm text-muted-foreground">{ENGINEER_NOTIFICATIONS_PAGE.description}</p>
+
+      {authUser ? (
+        <EngineerNotificationList
+          initialNotifications={await listMyNotifications(supabase, authUser.id)}
+        />
+      ) : (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
+          <p className="text-sm font-semibold text-foreground">
+            {ENGINEER_NOTIFICATIONS_SIGN_IN_REQUIRED_LABELS.title}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {ENGINEER_NOTIFICATIONS_SIGN_IN_REQUIRED_LABELS.description}
+          </p>
+          <Link
+            href={ENGINEER_NOTIFICATIONS_SIGN_IN_REQUIRED_LABELS.ctaHref}
+            className="mt-2 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            {ENGINEER_NOTIFICATIONS_SIGN_IN_REQUIRED_LABELS.ctaLabel}
+          </Link>
+        </div>
+      )}
     </DashboardShell>
   );
 }

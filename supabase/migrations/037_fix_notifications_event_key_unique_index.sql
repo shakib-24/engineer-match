@@ -1,0 +1,13 @@
+-- Browser E2E testing of the new Chat MVP (036_chat_mvp_and_message_notifications.sql)
+-- found that every real message send was failing with Postgres error 42P10
+-- ("there is no unique or exclusion constraint matching the ON CONFLICT
+-- specification") from private.notify_new_message()'s
+-- "ON CONFLICT (event_key) DO NOTHING" clause.
+--
+-- 013_notifications.sql already defines
+-- "CREATE UNIQUE INDEX IF NOT EXISTS uq_notifications_event_key ON
+-- public.notifications (event_key)", but the live database for this project
+-- does not currently have that index (drift between the migration file and
+-- what was actually run). Re-asserting it here, idempotently, is safe
+-- whether or not it already exists.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_notifications_event_key ON public.notifications (event_key);

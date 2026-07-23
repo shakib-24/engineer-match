@@ -1,35 +1,62 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { ConversationList } from "@/components/messages/ConversationList";
+import { EngineerConversationList } from "@/components/messages/EngineerConversationList";
 import { EmptyConversation } from "@/components/messages/EmptyConversation";
 import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
-import { CONVERSATIONS, MESSAGES_PAGE } from "@/constants/messages";
+import {
+  ENGINEER_MESSAGES_PAGE,
+  ENGINEER_MESSAGES_SIGN_IN_REQUIRED_LABELS,
+} from "@/constants/engineer-messages";
+import { createClient } from "@/lib/supabase/server";
+import { listMyConversations } from "@/lib/engineer/chat";
 
 export const metadata: Metadata = {
-  title: `${MESSAGES_PAGE.title} | ENGINEER MATCH`,
+  title: `${ENGINEER_MESSAGES_PAGE.title} | ENGINEER MATCH`,
 };
 
-export default function MessagesPage() {
+export default async function MessagesPage() {
   const user = USER_MENU.engineer;
+  const supabase = await createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
 
   return (
     <DashboardShell
       navItems={ENGINEER_NAV}
       activeHref="/messages"
-      pageTitle={MESSAGES_PAGE.title}
+      pageTitle={ENGINEER_MESSAGES_PAGE.title}
       userName={user.name}
       userInitials={user.initials}
     >
-      <p className="text-sm text-muted-foreground">{MESSAGES_PAGE.description}</p>
+      <p className="text-sm text-muted-foreground">{ENGINEER_MESSAGES_PAGE.description}</p>
 
-      <div className="grid grid-cols-1 gap-6 lg:h-[calc(100svh-220px)] lg:min-h-[520px] lg:grid-cols-[380px_1fr] lg:grid-rows-[minmax(0,1fr)]">
-        <div className="lg:h-full lg:min-h-0">
-          <ConversationList conversations={CONVERSATIONS} />
+      {authUser ? (
+        <div className="grid grid-cols-1 gap-6 lg:h-[calc(100svh-220px)] lg:min-h-[520px] lg:grid-cols-[380px_1fr] lg:grid-rows-[minmax(0,1fr)]">
+          <div className="lg:h-full lg:min-h-0">
+            <EngineerConversationList conversations={await listMyConversations(supabase, authUser.id)} />
+          </div>
+          <div className="hidden lg:block lg:h-full lg:min-h-0">
+            <EmptyConversation />
+          </div>
         </div>
-        <div className="hidden lg:block lg:h-full lg:min-h-0">
-          <EmptyConversation />
+      ) : (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
+          <p className="text-sm font-semibold text-foreground">
+            {ENGINEER_MESSAGES_SIGN_IN_REQUIRED_LABELS.title}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {ENGINEER_MESSAGES_SIGN_IN_REQUIRED_LABELS.description}
+          </p>
+          <Link
+            href={ENGINEER_MESSAGES_SIGN_IN_REQUIRED_LABELS.ctaHref}
+            className="mt-2 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            {ENGINEER_MESSAGES_SIGN_IN_REQUIRED_LABELS.ctaLabel}
+          </Link>
         </div>
-      </div>
+      )}
     </DashboardShell>
   );
 }

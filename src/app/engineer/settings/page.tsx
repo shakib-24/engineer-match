@@ -1,20 +1,27 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { EngineerAccountSettings } from "@/components/engineer/settings/EngineerAccountSettings";
-import { EngineerNotificationSettings } from "@/components/engineer/settings/EngineerNotificationSettings";
 import { EngineerPrivacySettings } from "@/components/engineer/settings/EngineerPrivacySettings";
 import { EngineerSecuritySettings } from "@/components/engineer/settings/EngineerSecuritySettings";
-import { EngineerDangerZone } from "@/components/engineer/settings/EngineerDangerZone";
 import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
 import { ENGINEER_SETTINGS_PAGE } from "@/constants/engineer-settings";
+import { SIGN_IN_REQUIRED_LABELS } from "@/constants/applications";
+import { createClient } from "@/lib/supabase/server";
+import { getEngineerProfile } from "@/lib/engineer/profile";
 
 export const metadata: Metadata = {
   title: `${ENGINEER_SETTINGS_PAGE.title} | ENGINEER MATCH`,
   description: ENGINEER_SETTINGS_PAGE.description,
 };
 
-export default function EngineerSettingsPage() {
+export default async function EngineerSettingsPage() {
   const user = USER_MENU.engineer;
+  const supabase = await createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+
+  const profile = authUser ? await getEngineerProfile(supabase, authUser.id) : null;
 
   return (
     <DashboardShell
@@ -33,11 +40,23 @@ export default function EngineerSettingsPage() {
         </p>
       </div>
 
-      <EngineerAccountSettings />
-      <EngineerNotificationSettings />
-      <EngineerPrivacySettings />
-      <EngineerSecuritySettings />
-      <EngineerDangerZone />
+      {authUser ? (
+        <>
+          <EngineerPrivacySettings initialIsPublic={profile?.is_public ?? false} />
+          <EngineerSecuritySettings />
+        </>
+      ) : (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
+          <p className="text-sm font-semibold text-foreground">{SIGN_IN_REQUIRED_LABELS.title}</p>
+          <p className="text-sm text-muted-foreground">{SIGN_IN_REQUIRED_LABELS.description}</p>
+          <Link
+            href={SIGN_IN_REQUIRED_LABELS.ctaHref}
+            className="mt-2 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            {SIGN_IN_REQUIRED_LABELS.ctaLabel}
+          </Link>
+        </div>
+      )}
     </DashboardShell>
   );
 }

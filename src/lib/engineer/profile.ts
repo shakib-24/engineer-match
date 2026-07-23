@@ -84,6 +84,28 @@ export async function updateUserName(
   return supabase.from("users").update({ name }).eq("id", userId).select("id, name").single();
 }
 
+/**
+ * Narrow upsert for the Settings page's public-profile toggle -- unlike
+ * saveEngineerProfile() this doesn't require the full profile input, since
+ * the caller may not have (or want to overwrite) the rest of the row. Must
+ * be an upsert rather than a plain update: a freshly-signed-up engineer has
+ * no engineer_profiles row yet (see saveEngineerProfile's comment), and a
+ * plain .update() against a nonexistent row affects 0 rows without
+ * returning an error, which would make the Settings toggle silently no-op
+ * while still reporting success.
+ */
+export async function updateProfileVisibility(
+  supabase: SupabaseClient,
+  userId: string,
+  isPublic: boolean,
+) {
+  return supabase
+    .from("engineer_profiles")
+    .upsert({ id: userId, is_public: isPublic }, { onConflict: "id" })
+    .select("id, is_public")
+    .single();
+}
+
 export interface ProfileCompletionInput {
   hasSelfPr: boolean;
   hasPrefecture: boolean;

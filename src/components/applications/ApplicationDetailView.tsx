@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Building2, CalendarDays } from "lucide-react";
+import { Building2, CalendarDays, MessageSquare } from "lucide-react";
 import { ApplicationStatusBadge } from "@/components/applications/ApplicationStatusBadge";
 import { WithdrawDialog } from "@/components/applications/WithdrawDialog";
 import {
@@ -190,11 +190,19 @@ export function ApplicationDetailView({ detail }: ApplicationDetailViewProps) {
               <ApplicationStatusBadge status={status} />
             </div>
 
+            <Link
+              href={`/messages/${detail.id}`}
+              className="mt-5 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-primary text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+              <MessageSquare className="h-4 w-4" aria-hidden="true" />
+              メッセージを送る
+            </Link>
+
             {canWithdraw && (
               <button
                 type="button"
                 onClick={() => setIsDialogOpen(true)}
-                className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-xl border border-red-200 bg-red-50 text-sm font-semibold text-red-700 transition-colors duration-200 hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+                className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl border border-red-200 bg-red-50 text-sm font-semibold text-red-700 transition-colors duration-200 hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 {WITHDRAW_DIALOG_LABELS.triggerLabel}
               </button>
