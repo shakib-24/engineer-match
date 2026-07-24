@@ -29,6 +29,8 @@ export interface EngineerSearchListItem {
   qualificationCount: number;
   humanAssessedCount: number;
   businessAssessedCount: number;
+  reviewAverage: number | null;
+  reviewCount: number;
 }
 
 /**
@@ -59,12 +61,18 @@ export async function listSearchableEngineers(
     { data: users },
     { data: skillRows },
     { data: qualificationRows },
+    { data: reviewRows },
     humanAssessments,
     businessAssessments,
   ] = await Promise.all([
     supabase.from("users").select("id, name").in("id", ids),
     supabase.from("user_skills").select("user_id, skill_level, skills(name)").in("user_id", ids),
     supabase.from("user_qualifications").select("user_id").in("user_id", ids),
+    // engineer_reviews_select_public RLS (050_engineer_reviews.sql) already
+    // restricts this to engineers with show_reviews=true -- an engineer who
+    // has hidden their reviews simply returns zero rows here, same as one
+    // with no reviews yet, by design.
+    supabase.from("engineer_reviews").select("engineer_user_id, rating").in("engineer_user_id", ids),
     listHumanAssessments(supabase),
     listBusinessAssessments(supabase),
   ]);
@@ -115,11 +123,20 @@ export async function listSearchableEngineers(
     qualificationCountByUser.set(row.user_id, (qualificationCountByUser.get(row.user_id) ?? 0) + 1);
   }
 
+  const reviewTotalsByUser = new Map<string, { sum: number; count: number }>();
+  for (const row of (reviewRows ?? []) as { engineer_user_id: string; rating: number }[]) {
+    const totals = reviewTotalsByUser.get(row.engineer_user_id) ?? { sum: 0, count: 0 };
+    totals.sum += row.rating;
+    totals.count += 1;
+    reviewTotalsByUser.set(row.engineer_user_id, totals);
+  }
+
   return ids
     .filter((id) => nameById.has(id))
     .map((id) => {
       const profile = profileById.get(id);
       const attempts = attemptsByUser.get(id) ?? [];
+      const reviewTotals = reviewTotalsByUser.get(id);
       return {
         id,
         name: nameById.get(id) ?? "",
@@ -133,6 +150,8 @@ export async function listSearchableEngineers(
         qualificationCount: qualificationCountByUser.get(id) ?? 0,
         humanAssessedCount: attempts.filter((a) => humanIds.has(a.assessment_id)).length,
         businessAssessedCount: attempts.filter((a) => businessIds.has(a.assessment_id)).length,
+        reviewAverage: reviewTotals ? Math.round((reviewTotals.sum / reviewTotals.count) * 10) / 10 : null,
+        reviewCount: reviewTotals?.count ?? 0,
       };
     });
 }

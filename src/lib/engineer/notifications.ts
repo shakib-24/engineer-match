@@ -1,19 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * public.notifications, per 013_notifications.sql. type is a real 4-value
- * enum (chk_notifications_type) -- there is no client-facing INSERT policy
- * (027_notification_favorite_policies.sql: system-generated only). The only
- * real producer today is private.notify_new_message() (a SECURITY DEFINER
- * trigger on public.messages, 036_chat_mvp_and_message_notifications.sql),
- * so this table is honestly empty until an engineer/company has an actual
- * chat conversation -- no other producer exists, and none is fabricated here.
+ * public.notifications, per 013_notifications.sql. type is a real enum
+ * (chk_notifications_type) -- there is no client-facing INSERT policy
+ * (027_notification_favorite_policies.sql: system-generated only). Real
+ * producers today: private.notify_new_message() (new chat messages,
+ * 036_chat_mvp_and_message_notifications.sql) and
+ * private.notify_new_review() / private.notify_new_review_reply() (Engineer
+ * Review/Rating System, 050_engineer_reviews.sql). application_received /
+ * application_status_changed / opportunity_closed still have no producer.
  */
 export type NotificationType =
   | "application_received"
   | "application_status_changed"
   | "new_message"
-  | "opportunity_closed";
+  | "opportunity_closed"
+  | "review_received"
+  | "review_reply_received";
 
 export interface NotificationItem {
   id: string;

@@ -30,6 +30,7 @@ export const APPLICATION_STATUS_OPTIONS = [
   { value: "accepted", label: "内定" },
   { value: "rejected", label: "不採用" },
   { value: "withdrawn", label: "辞退" },
+  { value: "completed", label: "完了" },
 ] as const;
 
 export const APPLICATION_STATUS_LABEL: Record<string, string> = {
@@ -39,6 +40,7 @@ export const APPLICATION_STATUS_LABEL: Record<string, string> = {
   accepted: "内定",
   rejected: "不採用",
   withdrawn: "辞退",
+  completed: "完了",
 };
 
 export const APPLICATION_STATUS_BADGE_STYLES: Record<string, string> = {
@@ -48,6 +50,7 @@ export const APPLICATION_STATUS_BADGE_STYLES: Record<string, string> = {
   accepted: "bg-green-50 text-green-700",
   rejected: "bg-red-50 text-red-700",
   withdrawn: "bg-gray-100 text-gray-600",
+  completed: "bg-teal-50 text-teal-700",
 };
 
 /** Per applications_update_withdraw RLS: any status other than 'withdrawn' may transition to withdrawn. */

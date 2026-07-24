@@ -29,6 +29,7 @@ export const APPLICATION_STATUSES: readonly ApplicationStatus[] = [
   "accepted",
   "rejected",
   "withdrawn",
+  "completed",
 ] as const;
 
 export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
@@ -38,6 +39,7 @@ export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   accepted: "内定",
   rejected: "不採用",
   withdrawn: "辞退",
+  completed: "完了",
 };
 
 export const APPLICATION_STATUS_BADGE_STYLES: Record<ApplicationStatus, string> = {
@@ -47,6 +49,7 @@ export const APPLICATION_STATUS_BADGE_STYLES: Record<ApplicationStatus, string> 
   accepted: "bg-green-50 text-green-700",
   rejected: "bg-red-50 text-red-700",
   withdrawn: "bg-gray-100 text-gray-600",
+  completed: "bg-teal-50 text-teal-700",
 };
 
 export const EXPERIENCE_FILTER_OPTIONS = [

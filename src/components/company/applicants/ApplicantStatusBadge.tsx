@@ -52,7 +52,7 @@ const ApplicantStatusContext = createContext<{
   changeStatus: (next: ApplicationStatus) => Promise<void>;
 } | null>(null);
 
-function useApplicantStatusContext() {
+export function useApplicantStatusContext() {
   const context = useContext(ApplicantStatusContext);
   if (!context) {
     throw new Error(
@@ -120,6 +120,12 @@ export function ApplicantStatusActions() {
 
   const nextStatus = STATUS_NEXT_STEP[status];
   const canReject = COMPANY_REJECTABLE_STATUSES.includes(status);
+  // accepted -> completed reuses the same generic change-status flow, but
+  // "次の選考段階に進める" (advance to next screening stage) reads oddly for
+  // marking already-hired work as finished -- this is the one label swap
+  // needed to keep the reused StatusChangeDialog flow accurate here.
+  const changeButtonLabel =
+    nextStatus === "completed" ? "この案件を完了にする" : APPLICANT_DETAIL_META.changeStatusLabel;
 
   async function handleConfirmChange() {
     if (!nextStatus) return;
@@ -143,7 +149,7 @@ export function ApplicantStatusActions() {
             className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Workflow className="h-4 w-4" aria-hidden="true" />
-            {APPLICANT_DETAIL_META.changeStatusLabel}
+            {changeButtonLabel}
           </button>
         )}
         {canReject && (

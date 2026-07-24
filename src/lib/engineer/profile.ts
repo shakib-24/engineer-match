@@ -42,13 +42,20 @@ export interface EngineerProfile {
   desired_hourly_rate_max: number | null;
   /** 稼働開始可能日. */
   available_from: string | null;
+  /** 評価をプロフィールに表示するか — global toggle, 050_engineer_reviews.sql. */
+  show_reviews: boolean;
   created_at: string;
   updated_at: string;
 }
 
+/**
+ * show_reviews is excluded here the same way avatar_url is: it has its own
+ * dedicated update path (updateReviewVisibility, src/lib/engineer/reviews.ts)
+ * rather than going through the general profile form.
+ */
 export type EngineerProfileInput = Omit<
   EngineerProfile,
-  "id" | "created_at" | "updated_at" | "avatar_url"
+  "id" | "created_at" | "updated_at" | "avatar_url" | "show_reviews"
 >;
 
 /**

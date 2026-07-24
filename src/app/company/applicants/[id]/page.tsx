@@ -8,6 +8,7 @@ import {
   ApplicantStatusProvider,
   LiveApplicantStatusBadge,
 } from "@/components/company/applicants/ApplicantStatusBadge";
+import { ApplicantReviewSection } from "@/components/company/applicants/ApplicantReviewSection";
 import { ApplicantProfileCard } from "@/components/company/applicants/ApplicantProfileCard";
 import { ApplicantSkills } from "@/components/company/applicants/ApplicantSkills";
 import { ApplicantQualifications } from "@/components/company/applicants/ApplicantQualifications";
@@ -24,6 +25,7 @@ import { CONTRACT_TYPE_LABEL } from "@/constants/jobs";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyApplicantDetail } from "@/lib/company/applicants";
 import { getCompanyHeaderIdentity } from "@/lib/company/profile";
+import { getReviewForApplication } from "@/lib/company/reviews";
 
 interface ApplicantDetailPageProps {
   params: Promise<{ id: string }>;
@@ -66,9 +68,11 @@ export default async function CompanyApplicantDetailPage({
     getCompanyHeaderIdentity(supabase, authUser),
   ]);
 
-  if (!applicant) {
+  if (!applicant || !authUser) {
     notFound();
   }
+
+  const initialReview = await getReviewForApplication(supabase, applicant.id);
 
   return (
     <DashboardShell
@@ -122,6 +126,13 @@ export default async function CompanyApplicantDetailPage({
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+            <ApplicantReviewSection
+              applicationId={applicant.id}
+              opportunityId={applicant.opportunityId}
+              companyUserId={authUser.id}
+              engineerUserId={applicant.applicantId}
+              initialReview={initialReview}
+            />
             <ContactDetailsSection phone={applicant.phone} nearestStation={applicant.nearestStation} />
             <ApplicantSkills skills={applicant.technicalSkills} />
             <ApplicantQualifications qualifications={applicant.qualifications} />

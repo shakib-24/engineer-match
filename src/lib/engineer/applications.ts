@@ -6,7 +6,7 @@ export interface Application {
   id: string;
   opportunity_id: string;
   applicant_id: string;
-  status: "applied" | "screening" | "interview" | "accepted" | "rejected" | "withdrawn";
+  status: "applied" | "screening" | "interview" | "accepted" | "rejected" | "withdrawn" | "completed";
   applied_at: string;
   created_at: string;
   updated_at: string;

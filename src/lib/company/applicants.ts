@@ -17,14 +17,20 @@ function firstEmbedded<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
-/** public.applications.status, per 011_applications.sql. No other values exist. */
+/**
+ * public.applications.status, per 011_applications.sql. 'completed' was
+ * added additively in 049_application_completion_status.sql to represent
+ * "the work/project actually finished" -- the review-eligibility trigger
+ * for the Engineer Review/Rating System (050_engineer_reviews.sql).
+ */
 export type ApplicationStatus =
   | "applied"
   | "screening"
   | "interview"
   | "accepted"
   | "rejected"
-  | "withdrawn";
+  | "withdrawn"
+  | "completed";
 
 export interface ApplicantListItem {
   id: string; // applications.id
@@ -452,9 +458,10 @@ export const STATUS_NEXT_STEP: Record<ApplicationStatus, ApplicationStatus | nul
   applied: "screening",
   screening: "interview",
   interview: "accepted",
-  accepted: null,
+  accepted: "completed",
   rejected: null,
   withdrawn: null,
+  completed: null,
 };
 
 /** Statuses a company may still reject from. */
@@ -468,17 +475,18 @@ export const COMPANY_REJECTABLE_STATUSES: readonly ApplicationStatus[] = [
  * Updates an application's status. Relies entirely on applications_update_poster
  * RLS (025_application_policies.sql) for ownership enforcement — no explicit
  * posted_by filter is possible here since applications has no posted_by column
- * of its own (only reachable via its parent opportunity).
+ * of its own (only reachable via its parent opportunity). Stamps completed_at
+ * (049_application_completion_status.sql) when transitioning into 'completed'.
  */
 export async function updateApplicationStatus(
   supabase: SupabaseClient,
   applicationId: string,
   nextStatus: ApplicationStatus,
 ) {
-  return supabase
-    .from("applications")
-    .update({ status: nextStatus })
-    .eq("id", applicationId)
-    .select("*")
-    .single();
+  const payload: { status: ApplicationStatus; completed_at?: string } = { status: nextStatus };
+  if (nextStatus === "completed") {
+    payload.completed_at = new Date().toISOString();
+  }
+
+  return supabase.from("applications").update(payload).eq("id", applicationId).select("*").single();
 }

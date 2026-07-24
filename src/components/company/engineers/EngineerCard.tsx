@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Award, MapPin } from "lucide-react";
 import { EngineerSkillSummary } from "@/components/company/engineers/EngineerSkillSummary";
+import { StarRatingDisplay } from "@/components/reviews/StarRatingDisplay";
 import { WORK_STYLE_LABEL } from "@/constants/jobs";
 import { AVAILABILITY_STATUS_OPTIONS } from "@/constants/engineer-profile";
 import { ENGINEER_CARD_LABELS } from "@/constants/company-engineers";
+import { REVIEW_COUNT_SUFFIX } from "@/constants/reviews";
 import type { EngineerSearchListItem } from "@/lib/company/engineers";
 
 interface EngineerCardProps {
@@ -67,6 +69,16 @@ export function EngineerCard({ engineer }: EngineerCardProps) {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        {engineer.reviewCount > 0 && engineer.reviewAverage !== null && (
+          <span className="inline-flex items-center gap-1">
+            <StarRatingDisplay rating={engineer.reviewAverage} size="sm" />
+            <span className="font-semibold text-foreground">{engineer.reviewAverage.toFixed(1)}</span>
+            <span>
+              （{engineer.reviewCount}
+              {REVIEW_COUNT_SUFFIX}）
+            </span>
+          </span>
+        )}
         {engineer.qualificationCount > 0 && (
           <span className="inline-flex items-center gap-1">
             <Award className="h-3.5 w-3.5" aria-hidden="true" />

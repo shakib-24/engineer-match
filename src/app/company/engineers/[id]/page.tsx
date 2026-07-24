@@ -13,11 +13,13 @@ import { EducationSection } from "@/components/company/profile-sections/Educatio
 import { PortfolioSection } from "@/components/company/profile-sections/PortfolioSection";
 import { LanguagesSection } from "@/components/company/profile-sections/LanguagesSection";
 import { PreferredConditionsSection } from "@/components/company/profile-sections/PreferredConditionsSection";
+import { EngineerReviewsSummary } from "@/components/company/engineers/EngineerReviewsSummary";
 import { COMPANY_NAV } from "@/constants/dashboard";
 import { ENGINEER_DETAIL_META } from "@/constants/company-engineers";
 import { createClient } from "@/lib/supabase/server";
 import { getSearchableEngineerDetail } from "@/lib/company/engineers";
 import { getCompanyHeaderIdentity } from "@/lib/company/profile";
+import { listEngineerReviews, summarizeReviews } from "@/lib/reviews";
 
 interface EngineerDetailPageProps {
   params: Promise<{ id: string }>;
@@ -43,14 +45,17 @@ export default async function CompanyEngineerDetailPage({
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
-  const [engineer, identity] = await Promise.all([
+  const [engineer, identity, reviews] = await Promise.all([
     getSearchableEngineerDetail(supabase, id),
     getCompanyHeaderIdentity(supabase, authUser),
+    listEngineerReviews(supabase, id),
   ]);
 
   if (!engineer) {
     notFound();
   }
+
+  const reviewSummary = summarizeReviews(reviews);
 
   return (
     <DashboardShell
@@ -92,6 +97,7 @@ export default async function CompanyEngineerDetailPage({
           <EducationSection educations={engineer.educations} />
           <PortfolioSection portfolioProjects={engineer.portfolioProjects} />
           <LanguagesSection languages={engineer.languages} />
+          <EngineerReviewsSummary reviews={reviews} averageRating={reviewSummary.average ?? 0} />
           <PreferredConditionsSection
             preferredContractTypes={engineer.preferredContractTypes}
             preferredLocations={engineer.preferredLocations}

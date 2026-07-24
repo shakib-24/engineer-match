@@ -24,6 +24,7 @@ import { EducationList } from "@/components/engineer/profile/EducationList";
 import { LanguageList } from "@/components/engineer/profile/LanguageList";
 import { PortfolioProjectCard } from "@/components/engineer/profile/PortfolioProjectCard";
 import { PreferredConditionsDisplay } from "@/components/engineer/profile/PreferredConditionsDisplay";
+import { EngineerReviewsSection } from "@/components/engineer/profile/EngineerReviewsSection";
 import { ENGINEER_NAV } from "@/constants/dashboard";
 import {
   AVAILABILITY_STATUS_OPTIONS,
@@ -70,6 +71,7 @@ import {
   listHumanAssessments,
   listLatestAttempts,
 } from "@/lib/engineer/skill-assessments";
+import { listEngineerReviews } from "@/lib/reviews";
 
 export const metadata: Metadata = {
   title: "プロフィール | ENGINEER MATCH",
@@ -109,6 +111,7 @@ export default async function EngineerProfilePage() {
     educations,
     languages,
     portfolioProjects,
+    reviews,
   ] = await Promise.all([
     authUser ? getEngineerProfile(supabase, authUser.id) : Promise.resolve(null),
     authUser
@@ -126,6 +129,7 @@ export default async function EngineerProfilePage() {
     authUser ? listEducations(supabase, authUser.id) : Promise.resolve([]),
     authUser ? listLanguages(supabase, authUser.id) : Promise.resolve([]),
     authUser ? listPortfolioProjects(supabase, authUser.id) : Promise.resolve([]),
+    authUser ? listEngineerReviews(supabase, authUser.id) : Promise.resolve([]),
   ]);
 
   const latestAttempts = authUser
@@ -474,6 +478,14 @@ export default async function EngineerProfilePage() {
               desiredHourlyRateMax={profile?.desired_hourly_rate_max ?? null}
             />
           </ProfileSection>
+
+          {authUser && (
+            <EngineerReviewsSection
+              userId={authUser.id}
+              reviews={reviews}
+              initialShowReviews={profile?.show_reviews ?? true}
+            />
+          )}
         </div>
 
         <div className="flex flex-col gap-6">
