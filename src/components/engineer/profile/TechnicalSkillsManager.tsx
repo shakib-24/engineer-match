@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { ItssBadge } from "@/components/engineer/profile/ItssBadge";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   ITSS_SKILL_LEVELS,
@@ -38,14 +39,22 @@ export function TechnicalSkillsManager({
   );
   const [newSkillId, setNewSkillId] = useState<string>(availableToAdd[0]?.id ?? "");
   const [newLevel, setNewLevel] = useState<number>(1);
+  const [newExperienceYears, setNewExperienceYears] = useState<string>("");
 
   async function handleAdd() {
     if (isSubmitting || !newSkillId) return;
     setIsSubmitting(true);
     setError(null);
 
+    const experienceYears = newExperienceYears.trim() ? Number(newExperienceYears) : null;
     const supabase = createClient();
-    const { data, error: addError } = await addUserSkill(supabase, userId, newSkillId, newLevel);
+    const { data, error: addError } = await addUserSkill(
+      supabase,
+      userId,
+      newSkillId,
+      newLevel,
+      experienceYears,
+    );
 
     setIsSubmitting(false);
 
@@ -58,7 +67,7 @@ export function TechnicalSkillsManager({
     const skillName = catalog.find((item) => item.id === newSkillId)?.name ?? "";
     const nextSkills = [
       ...skills,
-      { id: data.id as string, skillId: newSkillId, name: skillName, level: newLevel },
+      { id: data.id as string, skillId: newSkillId, name: skillName, level: newLevel, experienceYears },
     ];
     setSkills(nextSkills);
     const nextAvailable = catalog.filter(
@@ -66,26 +75,47 @@ export function TechnicalSkillsManager({
     );
     setNewSkillId(nextAvailable[0]?.id ?? "");
     setNewLevel(1);
+    setNewExperienceYears("");
   }
 
   async function handleLevelChange(userSkillId: string, level: number) {
     if (isSubmitting) return;
+    const current = skills.find((skill) => skill.id === userSkillId);
+    await handleFieldUpdate(userSkillId, level, current?.experienceYears ?? null);
+  }
+
+  async function handleExperienceYearsChange(userSkillId: string, experienceYears: number | null) {
+    if (isSubmitting) return;
+    const current = skills.find((skill) => skill.id === userSkillId);
+    await handleFieldUpdate(userSkillId, current?.level ?? 1, experienceYears);
+  }
+
+  async function handleFieldUpdate(
+    userSkillId: string,
+    level: number,
+    experienceYears: number | null,
+  ) {
     setIsSubmitting(true);
     setError(null);
 
     const supabase = createClient();
-    const { error: updateError } = await updateUserSkillLevel(supabase, userSkillId, level);
+    const { error: updateError } = await updateUserSkillLevel(
+      supabase,
+      userSkillId,
+      level,
+      experienceYears,
+    );
 
     setIsSubmitting(false);
 
     if (updateError) {
-      console.error("[technical-skills] level update failed:", updateError);
+      console.error("[technical-skills] update failed:", updateError);
       setError(TECHNICAL_SKILL_EDITOR_LABELS.updateError);
       return;
     }
 
     setSkills((prev) =>
-      prev.map((skill) => (skill.id === userSkillId ? { ...skill, level } : skill)),
+      prev.map((skill) => (skill.id === userSkillId ? { ...skill, level, experienceYears } : skill)),
     );
   }
 
@@ -145,6 +175,27 @@ export function TechnicalSkillsManager({
               ))}
             </select>
           </div>
+          <div className="flex w-32 flex-col gap-1">
+            <Label htmlFor={`skill-years-${skill.id}`} className="sr-only">
+              {TECHNICAL_SKILL_EDITOR_LABELS.experienceYearsLabel}
+            </Label>
+            <Input
+              id={`skill-years-${skill.id}`}
+              type="number"
+              min={0}
+              max={50}
+              disabled={isSubmitting}
+              value={skill.experienceYears ?? ""}
+              placeholder={TECHNICAL_SKILL_EDITOR_LABELS.experienceYearsLabel}
+              onChange={(event) =>
+                handleExperienceYearsChange(
+                  skill.id,
+                  event.target.value ? Number(event.target.value) : null,
+                )
+              }
+              className="h-9"
+            />
+          </div>
           <button
             type="button"
             onClick={() => handleRemove(skill.id)}
@@ -188,6 +239,18 @@ export function TechnicalSkillsManager({
                 </option>
               ))}
             </select>
+          </div>
+          <div className="flex w-32 flex-col gap-1.5">
+            <Label htmlFor="new-skill-years">{TECHNICAL_SKILL_EDITOR_LABELS.experienceYearsLabel}</Label>
+            <Input
+              id="new-skill-years"
+              type="number"
+              min={0}
+              max={50}
+              value={newExperienceYears}
+              onChange={(event) => setNewExperienceYears(event.target.value)}
+              className="h-9"
+            />
           </div>
           <button
             type="button"

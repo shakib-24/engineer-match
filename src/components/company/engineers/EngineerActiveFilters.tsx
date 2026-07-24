@@ -7,6 +7,7 @@ import {
   EXPERIENCE_BUCKET_OPTIONS,
   WORK_STYLE_FILTER_OPTIONS,
 } from "@/constants/company-engineers";
+import { AVAILABILITY_STATUS_OPTIONS, JOB_CATEGORY_OPTIONS } from "@/constants/engineer-profile";
 
 interface Chip {
   key: string;
@@ -69,6 +70,26 @@ export function EngineerActiveFilters({
       label: `${ACTIVE_FILTERS_LABELS.itssPrefix}${value}`,
       onRemove: () =>
         onFilterChange({ itssLevels: filters.itssLevels.filter((item) => item !== value) }),
+    });
+  }
+  for (const value of filters.jobCategories) {
+    const option = JOB_CATEGORY_OPTIONS.find((item) => item.value === value);
+    chips.push({
+      key: `job-category-${value}`,
+      label: option?.label ?? value,
+      onRemove: () =>
+        onFilterChange({ jobCategories: filters.jobCategories.filter((item) => item !== value) }),
+    });
+  }
+  for (const value of filters.availabilityStatuses) {
+    const option = AVAILABILITY_STATUS_OPTIONS.find((item) => item.value === value);
+    chips.push({
+      key: `availability-${value}`,
+      label: option?.label ?? value,
+      onRemove: () =>
+        onFilterChange({
+          availabilityStatuses: filters.availabilityStatuses.filter((item) => item !== value),
+        }),
     });
   }
   if (filters.experienceMin !== null) {

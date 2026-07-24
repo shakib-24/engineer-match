@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Award, MapPin } from "lucide-react";
 import { EngineerSkillSummary } from "@/components/company/engineers/EngineerSkillSummary";
 import { WORK_STYLE_LABEL } from "@/constants/jobs";
+import { AVAILABILITY_STATUS_OPTIONS } from "@/constants/engineer-profile";
 import { ENGINEER_CARD_LABELS } from "@/constants/company-engineers";
 import type { EngineerSearchListItem } from "@/lib/company/engineers";
 
@@ -27,6 +28,9 @@ export function EngineerCard({ engineer }: EngineerCardProps) {
         </div>
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-foreground">{engineer.name}</h3>
+          {engineer.jobTitle && (
+            <p className="truncate text-xs text-muted-foreground">{engineer.jobTitle}</p>
+          )}
           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
             {engineer.prefecture && (
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -43,6 +47,11 @@ export function EngineerCard({ engineer }: EngineerCardProps) {
             {engineer.workStyle && (
               <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-primary">
                 {WORK_STYLE_LABEL[engineer.workStyle]}
+              </span>
+            )}
+            {engineer.availabilityStatus && (
+              <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
+                {AVAILABILITY_STATUS_OPTIONS.find((o) => o.value === engineer.availabilityStatus)?.label}
               </span>
             )}
           </div>

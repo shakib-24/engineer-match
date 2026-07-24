@@ -4,8 +4,8 @@ interface TechnicalSkillCardProps {
   variant: "technical";
   name: string;
   itssLevel: 1 | 2 | 3 | 4 | 5 | 6 | 7;
-  /** Not part of public.user_skills -- only passed by callers with their own (mock) source for it. */
-  experienceYears?: number;
+  /** user_skills.experience_years, per 042_user_skills_experience_years.sql. */
+  experienceYears?: number | null;
 }
 
 interface RatedSkillCardProps {
@@ -24,7 +24,7 @@ export function SkillCard(props: SkillCardProps) {
         <ItssBadge level={itssLevel} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-          {experienceYears !== undefined && (
+          {experienceYears !== undefined && experienceYears !== null && (
             <p className="mt-0.5 text-xs text-muted-foreground">
               経験年数 {experienceYears}年
             </p>

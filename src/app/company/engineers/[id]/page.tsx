@@ -8,6 +8,11 @@ import { EngineerProfileOverview } from "@/components/company/engineers/Engineer
 import { ApplicantSkills } from "@/components/company/applicants/ApplicantSkills";
 import { ApplicantQualifications } from "@/components/company/applicants/ApplicantQualifications";
 import { ApplicantAssessmentSummary } from "@/components/company/applicants/ApplicantAssessmentSummary";
+import { WorkExperienceSection } from "@/components/company/profile-sections/WorkExperienceSection";
+import { EducationSection } from "@/components/company/profile-sections/EducationSection";
+import { PortfolioSection } from "@/components/company/profile-sections/PortfolioSection";
+import { LanguagesSection } from "@/components/company/profile-sections/LanguagesSection";
+import { PreferredConditionsSection } from "@/components/company/profile-sections/PreferredConditionsSection";
 import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
 import { ENGINEER_DETAIL_META } from "@/constants/company-engineers";
 import { createClient } from "@/lib/supabase/server";
@@ -76,6 +81,22 @@ export default async function CompanyEngineerDetailPage({
             title={ENGINEER_DETAIL_META.businessSkillTitle}
             icon={Briefcase}
             items={engineer.businessAssessments}
+          />
+          <WorkExperienceSection workExperiences={engineer.workExperiences} />
+          <EducationSection educations={engineer.educations} />
+          <PortfolioSection portfolioProjects={engineer.portfolioProjects} />
+          <LanguagesSection languages={engineer.languages} />
+          <PreferredConditionsSection
+            preferredContractTypes={engineer.preferredContractTypes}
+            preferredLocations={engineer.preferredLocations}
+            workStyle={engineer.workStyle}
+            availableFrom={engineer.availableFrom}
+            desiredRateMin={engineer.desiredRateMin}
+            desiredRateMax={engineer.desiredRateMax}
+            desiredAnnualIncomeMin={engineer.desiredAnnualIncomeMin}
+            desiredAnnualIncomeMax={engineer.desiredAnnualIncomeMax}
+            desiredHourlyRateMin={engineer.desiredHourlyRateMin}
+            desiredHourlyRateMax={engineer.desiredHourlyRateMax}
           />
         </div>
 

@@ -1,11 +1,29 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Award, BrainCircuit, Code2, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Award,
+  BriefcaseBusiness,
+  BrainCircuit,
+  Code2,
+  FolderGit2,
+  GraduationCap,
+  Languages as LanguagesIcon,
+  MapPin,
+  User,
+  Users,
+} from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { ProfileSection } from "@/components/engineer/profile/ProfileSection";
 import { BasicProfileForm } from "@/components/engineer/profile/BasicProfileForm";
+import { PersonalInfoForm } from "@/components/engineer/profile/PersonalInfoForm";
 import { TechnicalSkillsManager } from "@/components/engineer/profile/TechnicalSkillsManager";
 import { QualificationsManager } from "@/components/engineer/profile/QualificationsManager";
+import { WorkExperienceManager } from "@/components/engineer/profile/WorkExperienceManager";
+import { EducationManager } from "@/components/engineer/profile/EducationManager";
+import { LanguagesManager } from "@/components/engineer/profile/LanguagesManager";
+import { PortfolioManager } from "@/components/engineer/profile/PortfolioManager";
+import { PreferredConditionsManager } from "@/components/engineer/profile/PreferredConditionsManager";
 import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
 import {
   BUSINESS_SKILL_EDIT_NOTE,
@@ -16,8 +34,17 @@ import {
 } from "@/constants/engineer-profile";
 import { createClient } from "@/lib/supabase/server";
 import { getEngineerProfile } from "@/lib/engineer/profile";
+import { getContactDetails, getPersonalInfo } from "@/lib/engineer/personal-info";
 import { listSkillCatalog, listUserSkills } from "@/lib/engineer/skills";
 import { listQualificationCatalog, listUserQualifications } from "@/lib/engineer/qualifications";
+import {
+  listPreferredContractTypes,
+  listPreferredLocations,
+} from "@/lib/engineer/preferred-conditions";
+import { listWorkExperiences } from "@/lib/engineer/work-experience";
+import { listEducations } from "@/lib/engineer/education";
+import { listLanguages } from "@/lib/engineer/languages";
+import { listPortfolioProjects } from "@/lib/engineer/portfolio";
 
 export const metadata: Metadata = {
   title: "プロフィール編集 | ENGINEER MATCH",
@@ -31,17 +58,39 @@ export default async function EngineerProfileEditPage() {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
-  const [profile, userRow, userSkills, skillCatalog, userQualifications, qualificationCatalog] =
-    authUser
-      ? await Promise.all([
-          getEngineerProfile(supabase, authUser.id),
-          supabase.from("users").select("name").eq("id", authUser.id).maybeSingle(),
-          listUserSkills(supabase, authUser.id),
-          listSkillCatalog(supabase),
-          listUserQualifications(supabase, authUser.id),
-          listQualificationCatalog(supabase),
-        ])
-      : [null, { data: null }, [], [], [], []];
+  const [
+    profile,
+    userRow,
+    personalInfo,
+    contactDetails,
+    userSkills,
+    skillCatalog,
+    userQualifications,
+    qualificationCatalog,
+    preferredContractTypes,
+    preferredLocations,
+    workExperiences,
+    educations,
+    languages,
+    portfolioProjects,
+  ] = authUser
+    ? await Promise.all([
+        getEngineerProfile(supabase, authUser.id),
+        supabase.from("users").select("name").eq("id", authUser.id).maybeSingle(),
+        getPersonalInfo(supabase, authUser.id),
+        getContactDetails(supabase, authUser.id),
+        listUserSkills(supabase, authUser.id),
+        listSkillCatalog(supabase),
+        listUserQualifications(supabase, authUser.id),
+        listQualificationCatalog(supabase),
+        listPreferredContractTypes(supabase, authUser.id),
+        listPreferredLocations(supabase, authUser.id),
+        listWorkExperiences(supabase, authUser.id),
+        listEducations(supabase, authUser.id),
+        listLanguages(supabase, authUser.id),
+        listPortfolioProjects(supabase, authUser.id),
+      ])
+    : [null, { data: null }, null, null, [], [], [], [], [], [], [], [], [], []];
 
   const name = (userRow?.data?.name as string | undefined) ?? "";
   const email = authUser?.email ?? "";
@@ -68,6 +117,16 @@ export default async function EngineerProfileEditPage() {
         <ProfileSection title={PROFILE_EDIT_SECTIONS.basicInfo} icon={Users}>
           {authUser ? (
             <BasicProfileForm userId={authUser.id} initialName={name} email={email} profile={profile} />
+          ) : null}
+        </ProfileSection>
+
+        <ProfileSection title={PROFILE_EDIT_SECTIONS.personalInfo} icon={User}>
+          {authUser ? (
+            <PersonalInfoForm
+              userId={authUser.id}
+              personalInfo={personalInfo}
+              contactDetails={contactDetails}
+            />
           ) : null}
         </ProfileSection>
 
@@ -124,6 +183,32 @@ export default async function EngineerProfileEditPage() {
               userId={authUser.id}
               initialQualifications={userQualifications}
               catalog={qualificationCatalog}
+            />
+          )}
+        </ProfileSection>
+
+        <ProfileSection title={PROFILE_EDIT_SECTIONS.workExperience} icon={BriefcaseBusiness}>
+          {authUser && <WorkExperienceManager userId={authUser.id} initialItems={workExperiences} />}
+        </ProfileSection>
+
+        <ProfileSection title={PROFILE_EDIT_SECTIONS.education} icon={GraduationCap}>
+          {authUser && <EducationManager userId={authUser.id} initialItems={educations} />}
+        </ProfileSection>
+
+        <ProfileSection title={PROFILE_EDIT_SECTIONS.portfolio} icon={FolderGit2}>
+          {authUser && <PortfolioManager userId={authUser.id} initialItems={portfolioProjects} />}
+        </ProfileSection>
+
+        <ProfileSection title={PROFILE_EDIT_SECTIONS.languages} icon={LanguagesIcon}>
+          {authUser && <LanguagesManager userId={authUser.id} initialItems={languages} />}
+        </ProfileSection>
+
+        <ProfileSection title={PROFILE_EDIT_SECTIONS.preferredConditions} icon={MapPin}>
+          {authUser && (
+            <PreferredConditionsManager
+              userId={authUser.id}
+              initialContractTypes={preferredContractTypes}
+              initialLocations={preferredLocations}
             />
           )}
         </ProfileSection>

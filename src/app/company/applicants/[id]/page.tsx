@@ -12,6 +12,12 @@ import { ApplicantProfileCard } from "@/components/company/applicants/ApplicantP
 import { ApplicantSkills } from "@/components/company/applicants/ApplicantSkills";
 import { ApplicantQualifications } from "@/components/company/applicants/ApplicantQualifications";
 import { ApplicantAssessmentSummary } from "@/components/company/applicants/ApplicantAssessmentSummary";
+import { WorkExperienceSection } from "@/components/company/profile-sections/WorkExperienceSection";
+import { EducationSection } from "@/components/company/profile-sections/EducationSection";
+import { PortfolioSection } from "@/components/company/profile-sections/PortfolioSection";
+import { LanguagesSection } from "@/components/company/profile-sections/LanguagesSection";
+import { PreferredConditionsSection } from "@/components/company/profile-sections/PreferredConditionsSection";
+import { ContactDetailsSection } from "@/components/company/profile-sections/ContactDetailsSection";
 import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
 import { APPLICANT_DETAIL_META } from "@/constants/company-applicants";
 import { CONTRACT_TYPE_LABEL } from "@/constants/jobs";
@@ -113,6 +119,7 @@ export default async function CompanyApplicantDetailPage({
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+            <ContactDetailsSection phone={applicant.phone} nearestStation={applicant.nearestStation} />
             <ApplicantSkills skills={applicant.technicalSkills} />
             <ApplicantQualifications qualifications={applicant.qualifications} />
             <ApplicantAssessmentSummary
@@ -124,6 +131,22 @@ export default async function CompanyApplicantDetailPage({
               title={APPLICANT_DETAIL_META.businessSkillTitle}
               icon={Briefcase}
               items={applicant.businessAssessments}
+            />
+            <WorkExperienceSection workExperiences={applicant.workExperiences} />
+            <EducationSection educations={applicant.educations} />
+            <PortfolioSection portfolioProjects={applicant.portfolioProjects} />
+            <LanguagesSection languages={applicant.languages} />
+            <PreferredConditionsSection
+              preferredContractTypes={applicant.preferredContractTypes}
+              preferredLocations={applicant.preferredLocations}
+              workStyle={applicant.workStyle}
+              availableFrom={applicant.availableFrom}
+              desiredRateMin={applicant.desiredRateMin}
+              desiredRateMax={applicant.desiredRateMax}
+              desiredAnnualIncomeMin={applicant.desiredAnnualIncomeMin}
+              desiredAnnualIncomeMax={applicant.desiredAnnualIncomeMax}
+              desiredHourlyRateMin={applicant.desiredHourlyRateMin}
+              desiredHourlyRateMax={applicant.desiredHourlyRateMax}
             />
           </div>
 

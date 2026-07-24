@@ -49,7 +49,11 @@ export interface UserSkillItem {
   skillId: string;
   name: string;
   level: number | null;
+  /** 経験年数, per 042_user_skills_experience_years.sql. */
+  experienceYears: number | null;
 }
+
+const USER_SKILL_SELECT = "id, skill_id, skill_level, experience_years, skills(name)";
 
 /** The caller's own technical skills -- user_skills_select_own RLS (029_remaining_policies.sql). */
 export async function listUserSkills(
@@ -58,7 +62,7 @@ export async function listUserSkills(
 ): Promise<UserSkillItem[]> {
   const { data, error } = await supabase
     .from("user_skills")
-    .select("id, skill_id, skill_level, skills(name)")
+    .select(USER_SKILL_SELECT)
     .eq("user_id", userId)
     .order("created_at");
 
@@ -68,12 +72,19 @@ export async function listUserSkills(
   }
 
   return (
-    (data ?? []) as { id: string; skill_id: string; skill_level: number | null; skills: unknown }[]
+    (data ?? []) as {
+      id: string;
+      skill_id: string;
+      skill_level: number | null;
+      experience_years: number | null;
+      skills: unknown;
+    }[]
   ).map((row) => ({
     id: row.id,
     skillId: row.skill_id,
     name: firstEmbedded(row.skills as { name: string } | { name: string }[])?.name ?? "",
     level: row.skill_level,
+    experienceYears: row.experience_years,
   }));
 }
 
@@ -88,11 +99,12 @@ export async function addUserSkill(
   userId: string,
   skillId: string,
   level: number,
+  experienceYears: number | null,
 ) {
   return supabase
     .from("user_skills")
-    .insert({ user_id: userId, skill_id: skillId, skill_level: level })
-    .select("id, skill_id, skill_level, skills(name)")
+    .insert({ user_id: userId, skill_id: skillId, skill_level: level, experience_years: experienceYears })
+    .select(USER_SKILL_SELECT)
     .single();
 }
 
@@ -100,12 +112,13 @@ export async function updateUserSkillLevel(
   supabase: SupabaseClient,
   userSkillId: string,
   level: number,
+  experienceYears: number | null,
 ) {
   return supabase
     .from("user_skills")
-    .update({ skill_level: level })
+    .update({ skill_level: level, experience_years: experienceYears })
     .eq("id", userSkillId)
-    .select("id, skill_id, skill_level, skills(name)")
+    .select(USER_SKILL_SELECT)
     .single();
 }
 

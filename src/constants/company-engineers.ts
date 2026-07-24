@@ -67,6 +67,8 @@ export const FILTER_LABELS = {
   skills: "テクニカルスキル",
   itssLevels: "ITSSレベル",
   experience: "経験年数",
+  jobCategories: "職種カテゴリ",
+  availabilityStatuses: "稼働状況",
   resetLabel: "条件をリセット",
   openLabel: "絞り込み",
   closeLabel: "閉じる",

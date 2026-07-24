@@ -71,6 +71,21 @@ export function EngineerProfileOverview({ engineer }: EngineerProfileOverviewPro
             </dd>
           </div>
         )}
+        {engineer.githubUrl && (
+          <div className="min-w-0 sm:col-span-2">
+            <dt className="text-xs text-muted-foreground">GitHub</dt>
+            <dd className="mt-1 text-sm font-medium break-all">
+              <a
+                href={engineer.githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-2 transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
+                {engineer.githubUrl}
+              </a>
+            </dd>
+          </div>
+        )}
       </dl>
     </section>
   );

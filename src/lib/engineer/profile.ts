@@ -17,6 +17,31 @@ export interface EngineerProfile {
   portfolio_url: string | null;
   avatar_url: string | null;
   is_public: boolean;
+  /** 職種, per 039_engineer_profile_professional_fields.sql. */
+  job_title: string | null;
+  /** 職種カテゴリ, per chk_engineer_profiles_job_category (039). */
+  job_category:
+    | "FRONTEND"
+    | "BACKEND"
+    | "FULLSTACK"
+    | "INFRA"
+    | "CLOUD"
+    | "AI_DATA"
+    | "PM"
+    | "QA"
+    | "SECURITY"
+    | null;
+  /** 稼働状況, per chk_engineer_profiles_availability_status (039). */
+  availability_status: "IMMEDIATE" | "NEGOTIABLE" | "CURRENTLY_EMPLOYED" | "ON_LEAVE" | null;
+  github_url: string | null;
+  /** 希望年収 (万円), for 契約形態=就職. */
+  desired_annual_income_min: number | null;
+  desired_annual_income_max: number | null;
+  /** 希望時間単価 (円), for 契約形態=時間精算. */
+  desired_hourly_rate_min: number | null;
+  desired_hourly_rate_max: number | null;
+  /** 稼働開始可能日. */
+  available_from: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -114,6 +139,9 @@ export interface ProfileCompletionInput {
   hasDesiredRate: boolean;
   hasTechnicalSkill: boolean;
   hasQualification: boolean;
+  hasJobTitle: boolean;
+  hasWorkExperience: boolean;
+  hasLanguage: boolean;
 }
 
 export interface ProfileCompletionResult {
@@ -129,6 +157,9 @@ const COMPLETION_ITEM_LABELS: Record<keyof ProfileCompletionInput, string> = {
   hasDesiredRate: "希望単価の入力",
   hasTechnicalSkill: "テクニカルスキルの登録",
   hasQualification: "資格情報の登録",
+  hasJobTitle: "職種の入力",
+  hasWorkExperience: "職務経歴の登録",
+  hasLanguage: "言語情報の登録",
 };
 
 /** Drives ProfileCompletion off real signals only -- no fabricated percentage. */

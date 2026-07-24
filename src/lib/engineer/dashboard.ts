@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getEngineerProfile, computeProfileCompletion } from "@/lib/engineer/profile";
 import { listUserSkills } from "@/lib/engineer/skills";
 import { listUserQualifications } from "@/lib/engineer/qualifications";
+import { listWorkExperiences } from "@/lib/engineer/work-experience";
+import { listLanguages } from "@/lib/engineer/languages";
 import { listMyApplications, type ApplicationListItem } from "@/lib/engineer/applications";
 import { listMyFavoriteOpportunityIds } from "@/lib/engineer/favorites";
 import { listMyConversations, type ConversationListItem } from "@/lib/engineer/chat";
@@ -39,6 +41,8 @@ export async function getEngineerDashboardData(
     qualifications,
     conversations,
     publishedResult,
+    workExperiences,
+    languages,
   ] = await Promise.all([
     listMyApplications(supabase, userId),
     listMyFavoriteOpportunityIds(supabase, userId),
@@ -47,6 +51,8 @@ export async function getEngineerDashboardData(
     listUserQualifications(supabase, userId),
     listMyConversations(supabase, userId),
     listPublishedOpportunities(supabase, { sort: "newest", pageSize: 6 }),
+    listWorkExperiences(supabase, userId),
+    listLanguages(supabase, userId),
   ]);
 
   const appliedOpportunityIds = new Set(applications.map((app) => app.opportunity_id));
@@ -63,6 +69,9 @@ export async function getEngineerDashboardData(
     hasDesiredRate: Boolean(profile?.desired_rate_min && profile?.desired_rate_max),
     hasTechnicalSkill: technicalSkills.length > 0,
     hasQualification: qualifications.length > 0,
+    hasJobTitle: Boolean(profile?.job_title),
+    hasWorkExperience: workExperiences.length > 0,
+    hasLanguage: languages.length > 0,
   });
 
   const maxItssLevel = technicalSkills.reduce<number | null>((max, skill) => {

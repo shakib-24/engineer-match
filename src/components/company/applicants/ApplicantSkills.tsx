@@ -5,6 +5,7 @@ import { APPLICANT_DETAIL_META } from "@/constants/company-applicants";
 interface TechnicalSkillItem {
   name: string;
   level: number | null;
+  experienceYears?: number | null;
 }
 
 interface ApplicantSkillsProps {
@@ -37,6 +38,9 @@ export function ApplicantSkills({ skills }: ApplicantSkillsProps) {
                 <ItssBadge level={skill.level as 1 | 2 | 3 | 4 | 5 | 6 | 7} size="sm" />
               )}
               {skill.name}
+              {skill.experienceYears !== undefined && skill.experienceYears !== null && (
+                <span className="text-primary/70">（{skill.experienceYears}年）</span>
+              )}
             </li>
           ))}
         </ul>

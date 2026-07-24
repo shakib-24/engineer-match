@@ -9,6 +9,7 @@ import {
   WORK_STYLE_FILTER_OPTIONS,
   type ExperienceBucket,
 } from "@/constants/company-engineers";
+import { AVAILABILITY_STATUS_OPTIONS, JOB_CATEGORY_OPTIONS } from "@/constants/engineer-profile";
 
 function toggleValue<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
@@ -20,6 +21,8 @@ export interface EngineerFilterState {
   skills: string[];
   itssLevels: number[];
   experienceMin: ExperienceBucket;
+  jobCategories: string[];
+  availabilityStatuses: string[];
 }
 
 export const DEFAULT_ENGINEER_FILTER_STATE: EngineerFilterState = {
@@ -28,6 +31,8 @@ export const DEFAULT_ENGINEER_FILTER_STATE: EngineerFilterState = {
   skills: [],
   itssLevels: [],
   experienceMin: null,
+  jobCategories: [],
+  availabilityStatuses: [],
 };
 
 interface CheckboxGroupProps {
@@ -149,6 +154,62 @@ export function EngineerFilterFields({
               >
                 {level}
               </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-2.5">
+        <legend className="text-sm font-semibold text-foreground">
+          {FILTER_LABELS.jobCategories}
+        </legend>
+        <div className="flex flex-wrap gap-x-4 gap-y-2.5">
+          {JOB_CATEGORY_OPTIONS.map((option) => {
+            const id = `${idPrefix}-job-category-${option.value}`;
+            return (
+              <label
+                key={option.value}
+                htmlFor={id}
+                className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+              >
+                <Checkbox
+                  id={id}
+                  checked={filters.jobCategories.includes(option.value)}
+                  onCheckedChange={() =>
+                    onChange({ jobCategories: toggleValue(filters.jobCategories, option.value) })
+                  }
+                />
+                {option.label}
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-2.5">
+        <legend className="text-sm font-semibold text-foreground">
+          {FILTER_LABELS.availabilityStatuses}
+        </legend>
+        <div className="flex flex-wrap gap-x-4 gap-y-2.5">
+          {AVAILABILITY_STATUS_OPTIONS.map((option) => {
+            const id = `${idPrefix}-availability-${option.value}`;
+            return (
+              <label
+                key={option.value}
+                htmlFor={id}
+                className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+              >
+                <Checkbox
+                  id={id}
+                  checked={filters.availabilityStatuses.includes(option.value)}
+                  onCheckedChange={() =>
+                    onChange({
+                      availabilityStatuses: toggleValue(filters.availabilityStatuses, option.value),
+                    })
+                  }
+                />
+                {option.label}
+              </label>
             );
           })}
         </div>

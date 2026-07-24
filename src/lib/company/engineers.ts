@@ -22,6 +22,9 @@ export interface EngineerSearchListItem {
   prefecture: string | null;
   yearsOfExperience: number | null;
   workStyle: "REMOTE" | "ONSITE" | "HYBRID" | null;
+  jobTitle: string | null;
+  jobCategory: string | null;
+  availabilityStatus: string | null;
   technicalSkills: { name: string; level: number | null }[];
   qualificationCount: number;
   humanAssessedCount: number;
@@ -42,7 +45,7 @@ export async function listSearchableEngineers(
 ): Promise<EngineerSearchListItem[]> {
   const { data: profiles, error: profilesError } = await supabase
     .from("engineer_profiles")
-    .select("id, prefecture, years_of_experience, work_style");
+    .select("id, prefecture, years_of_experience, work_style, job_title, job_category, availability_status");
 
   if (profilesError) {
     console.error("[company-engineers] failed to list engineer profiles:", profilesError);
@@ -123,6 +126,9 @@ export async function listSearchableEngineers(
         prefecture: (profile?.prefecture as string | null) ?? null,
         yearsOfExperience: (profile?.years_of_experience as number | null) ?? null,
         workStyle: (profile?.work_style as EngineerSearchListItem["workStyle"]) ?? null,
+        jobTitle: (profile?.job_title as string | null) ?? null,
+        jobCategory: (profile?.job_category as string | null) ?? null,
+        availabilityStatus: (profile?.availability_status as string | null) ?? null,
         technicalSkills: skillsByUser.get(id) ?? [],
         qualificationCount: qualificationCountByUser.get(id) ?? 0,
         humanAssessedCount: attempts.filter((a) => humanIds.has(a.assessment_id)).length,
@@ -147,10 +153,53 @@ export interface EngineerDetail {
   desiredRateMin: number | null;
   desiredRateMax: number | null;
   portfolioUrl: string | null;
-  technicalSkills: { name: string; level: number | null }[];
-  qualifications: { name: string; organization: string; obtainedYear: number | null }[];
+  jobTitle: string | null;
+  jobCategory: string | null;
+  availabilityStatus: string | null;
+  githubUrl: string | null;
+  desiredAnnualIncomeMin: number | null;
+  desiredAnnualIncomeMax: number | null;
+  desiredHourlyRateMin: number | null;
+  desiredHourlyRateMax: number | null;
+  availableFrom: string | null;
+  technicalSkills: { name: string; level: number | null; experienceYears: number | null }[];
+  qualifications: {
+    name: string;
+    organization: string;
+    obtainedYear: number | null;
+    expirationDate: string | null;
+    noExpiration: boolean;
+  }[];
   humanAssessments: EngineerAssessmentSummary[];
   businessAssessments: EngineerAssessmentSummary[];
+  preferredContractTypes: string[];
+  preferredLocations: string[];
+  workExperiences: {
+    id: string;
+    companyName: string;
+    position: string | null;
+    period: string | null;
+    employmentType: string | null;
+    summary: string | null;
+    technologies: string[];
+  }[];
+  educations: {
+    id: string;
+    schoolName: string;
+    department: string | null;
+    period: string | null;
+    description: string | null;
+  }[];
+  languages: { id: string; languageName: string; level: string }[];
+  portfolioProjects: {
+    id: string;
+    title: string;
+    role: string | null;
+    description: string | null;
+    url: string | null;
+    period: string | null;
+    technologies: string[];
+  }[];
 }
 
 /**
@@ -158,10 +207,11 @@ export interface EngineerDetail {
  * exist", "not an engineer", and "no longer public/active" -- RLS
  * (035_engineer_search_visibility_policies.sql) makes all three collapse to
  * the same "no row" result, so there is nothing to branch on here. Does not
- * select users.email: the search/discovery detail spec lists name,
- * prefecture, years_of_experience, self_pr, work_style, desired rate,
- * portfolio_url, skills, qualifications, and assessment final levels only --
- * email is intentionally not part of pre-application discovery.
+ * select users.email, engineer_personal_info, or engineer_contact_details:
+ * the search/discovery detail is pre-application, so personal/contact info
+ * stays hidden here by construction -- it's only ever surfaced in
+ * src/lib/company/applicants.ts's ApplicantDetail (and even there, only the
+ * contact_details half, never personal_info).
  */
 export async function getSearchableEngineerDetail(
   supabase: SupabaseClient,
@@ -170,7 +220,7 @@ export async function getSearchableEngineerDetail(
   const { data: profile, error: profileError } = await supabase
     .from("engineer_profiles")
     .select(
-      "id, prefecture, years_of_experience, self_pr, work_style, desired_rate_min, desired_rate_max, portfolio_url",
+      "id, prefecture, years_of_experience, self_pr, work_style, desired_rate_min, desired_rate_max, portfolio_url, job_title, job_category, availability_status, github_url, desired_annual_income_min, desired_annual_income_max, desired_hourly_rate_min, desired_hourly_rate_max, available_from",
     )
     .eq("id", id)
     .maybeSingle();
@@ -193,16 +243,52 @@ export async function getSearchableEngineerDetail(
   }
   if (!userRow) return null;
 
-  const [{ data: skillRows }, { data: qualificationRows }, humanAssessments, businessAssessments] =
-    await Promise.all([
-      supabase.from("user_skills").select("skill_level, skills(name)").eq("user_id", id),
-      supabase
-        .from("user_qualifications")
-        .select("obtained_year, qualifications(name, organization)")
-        .eq("user_id", id),
-      listHumanAssessments(supabase),
-      listBusinessAssessments(supabase),
-    ]);
+  const [
+    { data: skillRows },
+    { data: qualificationRows },
+    humanAssessments,
+    businessAssessments,
+    { data: contractTypeRows },
+    { data: locationRows },
+    { data: workExperienceRows },
+    { data: educationRows },
+    { data: languageRows },
+    { data: portfolioRows },
+  ] = await Promise.all([
+    supabase.from("user_skills").select("skill_level, experience_years, skills(name)").eq("user_id", id),
+    supabase
+      .from("user_qualifications")
+      .select("obtained_year, expiration_date, no_expiration, qualifications(name, organization)")
+      .eq("user_id", id),
+    listHumanAssessments(supabase),
+    listBusinessAssessments(supabase),
+    supabase.from("engineer_preferred_contract_types").select("contract_type").eq("user_id", id),
+    supabase.from("engineer_preferred_locations").select("location").eq("user_id", id),
+    supabase
+      .from("engineer_work_experiences")
+      .select(
+        "id, company_name, position, period, employment_type, summary, display_order, engineer_work_experience_technologies(technology)",
+      )
+      .eq("user_id", id)
+      .order("display_order"),
+    supabase
+      .from("engineer_educations")
+      .select("id, school_name, department, period, description, display_order")
+      .eq("user_id", id)
+      .order("display_order"),
+    supabase
+      .from("engineer_languages")
+      .select("id, language_name, level, display_order")
+      .eq("user_id", id)
+      .order("display_order"),
+    supabase
+      .from("engineer_portfolio_projects")
+      .select(
+        "id, title, role, description, url, period, display_order, engineer_portfolio_project_technologies(technology)",
+      )
+      .eq("user_id", id)
+      .order("display_order"),
+  ]);
 
   const latestAttempts = await listLatestAttempts(
     supabase,
@@ -220,14 +306,29 @@ export async function getSearchableEngineerDetail(
     desiredRateMin: (profile.desired_rate_min as number | null) ?? null,
     desiredRateMax: (profile.desired_rate_max as number | null) ?? null,
     portfolioUrl: (profile.portfolio_url as string | null) ?? null,
-    technicalSkills: ((skillRows ?? []) as { skill_level: number | null; skills: unknown }[]).map(
-      (row) => ({
-        name: firstEmbedded(row.skills as { name: string } | { name: string }[])?.name ?? "",
-        level: row.skill_level,
-      }),
-    ),
+    jobTitle: (profile.job_title as string | null) ?? null,
+    jobCategory: (profile.job_category as string | null) ?? null,
+    availabilityStatus: (profile.availability_status as string | null) ?? null,
+    githubUrl: (profile.github_url as string | null) ?? null,
+    desiredAnnualIncomeMin: (profile.desired_annual_income_min as number | null) ?? null,
+    desiredAnnualIncomeMax: (profile.desired_annual_income_max as number | null) ?? null,
+    desiredHourlyRateMin: (profile.desired_hourly_rate_min as number | null) ?? null,
+    desiredHourlyRateMax: (profile.desired_hourly_rate_max as number | null) ?? null,
+    availableFrom: (profile.available_from as string | null) ?? null,
+    technicalSkills: (
+      (skillRows ?? []) as { skill_level: number | null; experience_years: number | null; skills: unknown }[]
+    ).map((row) => ({
+      name: firstEmbedded(row.skills as { name: string } | { name: string }[])?.name ?? "",
+      level: row.skill_level,
+      experienceYears: row.experience_years,
+    })),
     qualifications: (
-      (qualificationRows ?? []) as { obtained_year: number | null; qualifications: unknown }[]
+      (qualificationRows ?? []) as {
+        obtained_year: number | null;
+        expiration_date: string | null;
+        no_expiration: boolean;
+        qualifications: unknown;
+      }[]
     ).map((row) => {
       const qualification = firstEmbedded(
         row.qualifications as
@@ -238,6 +339,8 @@ export async function getSearchableEngineerDetail(
         name: qualification?.name ?? "",
         organization: qualification?.organization ?? "",
         obtainedYear: row.obtained_year,
+        expirationDate: row.expiration_date,
+        noExpiration: row.no_expiration,
       };
     }),
     humanAssessments: humanAssessments.map((a) => ({
@@ -249,6 +352,66 @@ export async function getSearchableEngineerDetail(
       code: a.code,
       name: a.name,
       finalLevel: latestAttempts.get(a.id)?.final_level ?? null,
+    })),
+    preferredContractTypes: ((contractTypeRows ?? []) as { contract_type: string }[]).map(
+      (row) => row.contract_type,
+    ),
+    preferredLocations: ((locationRows ?? []) as { location: string }[]).map((row) => row.location),
+    workExperiences: (
+      (workExperienceRows ?? []) as {
+        id: string;
+        company_name: string;
+        position: string | null;
+        period: string | null;
+        employment_type: string | null;
+        summary: string | null;
+        engineer_work_experience_technologies: { technology: string }[] | null;
+      }[]
+    ).map((row) => ({
+      id: row.id,
+      companyName: row.company_name,
+      position: row.position,
+      period: row.period,
+      employmentType: row.employment_type,
+      summary: row.summary,
+      technologies: (row.engineer_work_experience_technologies ?? []).map((t) => t.technology),
+    })),
+    educations: (
+      (educationRows ?? []) as {
+        id: string;
+        school_name: string;
+        department: string | null;
+        period: string | null;
+        description: string | null;
+      }[]
+    ).map((row) => ({
+      id: row.id,
+      schoolName: row.school_name,
+      department: row.department,
+      period: row.period,
+      description: row.description,
+    })),
+    languages: ((languageRows ?? []) as { id: string; language_name: string; level: string }[]).map(
+      (row) => ({ id: row.id, languageName: row.language_name, level: row.level }),
+    ),
+    portfolioProjects: (
+      (portfolioRows ?? []) as {
+        id: string;
+        title: string;
+        role: string | null;
+        description: string | null;
+        url: string | null;
+        period: string | null;
+        engineer_portfolio_project_technologies: { technology: string }[] | null;
+      }[]
+    ).map((row) => ({
+      id: row.id,
+      title: row.title,
+      role: row.role,
+      description: row.description,
+      url: row.url,
+      period: row.period,
+      technologies: (row.engineer_portfolio_project_technologies ?? []).map((t) => t.technology),
     })),
   };
 }

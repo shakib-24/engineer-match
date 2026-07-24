@@ -5,6 +5,8 @@ interface QualificationItem {
   name: string;
   organization: string;
   obtainedYear: number | null;
+  expirationDate?: string | null;
+  noExpiration?: boolean;
 }
 
 interface ApplicantQualificationsProps {
@@ -38,6 +40,11 @@ export function ApplicantQualifications({ qualifications }: ApplicantQualificati
                 {qualification.organization}
                 {qualification.obtainedYear && ` ・ 取得年：${qualification.obtainedYear}年`}
               </p>
+              {(qualification.noExpiration || qualification.expirationDate) && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  有効期限：{qualification.noExpiration ? "なし" : qualification.expirationDate}
+                </p>
+              )}
             </li>
           ))}
         </ul>

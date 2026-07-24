@@ -70,6 +70,8 @@ export function EngineerList({ engineers }: EngineerListProps) {
     filters.workStyles.length +
     filters.skills.length +
     filters.itssLevels.length +
+    filters.jobCategories.length +
+    filters.availabilityStatuses.length +
     (filters.experienceMin !== null ? 1 : 0);
 
   const filteredEngineers = useMemo(() => {
@@ -105,6 +107,17 @@ export function EngineerList({ engineers }: EngineerListProps) {
         (engineer.yearsOfExperience ?? 0) < filters.experienceMin
       )
         return false;
+      if (filters.jobCategories.length > 0) {
+        if (!engineer.jobCategory || !filters.jobCategories.includes(engineer.jobCategory))
+          return false;
+      }
+      if (filters.availabilityStatuses.length > 0) {
+        if (
+          !engineer.availabilityStatus ||
+          !filters.availabilityStatuses.includes(engineer.availabilityStatus)
+        )
+          return false;
+      }
       return true;
     });
 

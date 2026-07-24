@@ -1,5 +1,6 @@
 import { Mail, MapPin } from "lucide-react";
 import { WORK_STYLE_LABEL } from "@/constants/jobs";
+import { AVAILABILITY_STATUS_OPTIONS, JOB_CATEGORY_OPTIONS } from "@/constants/engineer-profile";
 import { APPLICANT_DETAIL_META } from "@/constants/company-applicants";
 import type { ApplicantDetail } from "@/lib/company/applicants";
 
@@ -9,6 +10,10 @@ interface ApplicantProfileCardProps {
 
 export function ApplicantProfileCard({ applicant }: ApplicantProfileCardProps) {
   const hasRateRange = applicant.desiredRateMin !== null && applicant.desiredRateMax !== null;
+  const jobCategoryLabel = JOB_CATEGORY_OPTIONS.find((o) => o.value === applicant.jobCategory)?.label;
+  const availabilityLabel = AVAILABILITY_STATUS_OPTIONS.find(
+    (o) => o.value === applicant.availabilityStatus,
+  )?.label;
 
   return (
     <section className="rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-8">
@@ -21,6 +26,24 @@ export function ApplicantProfileCard({ applicant }: ApplicantProfileCardProps) {
       )}
 
       <dl className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {applicant.jobTitle && (
+          <div>
+            <dt className="text-xs text-muted-foreground">職種</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">{applicant.jobTitle}</dd>
+          </div>
+        )}
+        {jobCategoryLabel && (
+          <div>
+            <dt className="text-xs text-muted-foreground">職種カテゴリ</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">{jobCategoryLabel}</dd>
+          </div>
+        )}
+        {availabilityLabel && (
+          <div>
+            <dt className="text-xs text-muted-foreground">稼働状況</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">{availabilityLabel}</dd>
+          </div>
+        )}
         {applicant.yearsOfExperience !== null && (
           <div>
             <dt className="text-xs text-muted-foreground">経験年数</dt>
@@ -79,6 +102,21 @@ export function ApplicantProfileCard({ applicant }: ApplicantProfileCardProps) {
                 className="text-primary underline underline-offset-2 transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 {applicant.portfolioUrl}
+              </a>
+            </dd>
+          </div>
+        )}
+        {applicant.githubUrl && (
+          <div className="min-w-0 sm:col-span-2">
+            <dt className="text-xs text-muted-foreground">GitHub</dt>
+            <dd className="mt-1 text-sm font-medium break-all">
+              <a
+                href={applicant.githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-2 transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
+                {applicant.githubUrl}
               </a>
             </dd>
           </div>

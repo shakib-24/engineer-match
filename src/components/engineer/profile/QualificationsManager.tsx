@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   addUserQualification,
   removeUserQualification,
-  updateUserQualificationYear,
+  updateUserQualification,
   type QualificationCatalogItem,
+  type QualificationExpirationInput,
   type UserQualificationItem,
 } from "@/lib/engineer/qualifications";
 import { createClient } from "@/lib/supabase/client";
@@ -44,11 +46,51 @@ export function QualificationsManager({
   );
   const [newQualificationId, setNewQualificationId] = useState<string>(availableToAdd[0]?.id ?? "");
   const [newYear, setNewYear] = useState<string>("");
+  const [newExpirationDate, setNewExpirationDate] = useState<string>("");
+  const [newNoExpiration, setNewNoExpiration] = useState(false);
+
   const [yearDrafts, setYearDrafts] = useState<Record<string, string>>({});
+  const [expirationDrafts, setExpirationDrafts] = useState<Record<string, string>>({});
 
   function yearValue(item: UserQualificationItem): string {
     if (item.id in yearDrafts) return yearDrafts[item.id];
     return item.obtainedYear ? String(item.obtainedYear) : "";
+  }
+
+  function expirationValue(item: UserQualificationItem): string {
+    if (item.id in expirationDrafts) return expirationDrafts[item.id];
+    return item.expirationDate ?? "";
+  }
+
+  async function saveQualification(
+    id: string,
+    patch: Partial<QualificationExpirationInput>,
+  ) {
+    const current = qualifications.find((q) => q.id === id);
+    if (!current) return;
+
+    const input: QualificationExpirationInput = {
+      obtainedYear: current.obtainedYear,
+      expirationDate: current.expirationDate,
+      noExpiration: current.noExpiration,
+      ...patch,
+    };
+
+    setIsSubmitting(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error: updateError } = await updateUserQualification(supabase, id, input);
+
+    setIsSubmitting(false);
+
+    if (updateError) {
+      console.error("[qualifications] update failed:", updateError);
+      setError(QUALIFICATION_EDITOR_LABELS.updateError);
+      return;
+    }
+
+    setQualifications((prev) => prev.map((q) => (q.id === id ? { ...q, ...input } : q)));
   }
 
   async function handleAdd() {
@@ -61,12 +103,16 @@ export function QualificationsManager({
     setError(null);
 
     const supabase = createClient();
-    const obtainedYear = newYear.trim() ? Number(newYear) : null;
+    const input: QualificationExpirationInput = {
+      obtainedYear: newYear.trim() ? Number(newYear) : null,
+      expirationDate: newNoExpiration ? null : newExpirationDate.trim() || null,
+      noExpiration: newNoExpiration,
+    };
     const { data, error: addError } = await addUserQualification(
       supabase,
       userId,
       newQualificationId,
-      obtainedYear,
+      input,
     );
 
     setIsSubmitting(false);
@@ -85,7 +131,7 @@ export function QualificationsManager({
         qualificationId: newQualificationId,
         name: catalogItem?.name ?? "",
         organization: catalogItem?.organization ?? "",
-        obtainedYear,
+        ...input,
       },
     ];
     setQualifications(nextQualifications);
@@ -94,41 +140,38 @@ export function QualificationsManager({
     );
     setNewQualificationId(nextAvailable[0]?.id ?? "");
     setNewYear("");
+    setNewExpirationDate("");
+    setNewNoExpiration(false);
   }
 
-  async function handleYearBlur(userQualificationId: string) {
-    const draft = yearDrafts[userQualificationId];
+  async function handleYearBlur(id: string) {
+    const draft = yearDrafts[id];
     if (draft === undefined) return;
     if (!isValidYear(draft)) {
       setError(QUALIFICATION_EDITOR_LABELS.invalidYear);
       return;
     }
-
-    const current = qualifications.find((q) => q.id === userQualificationId);
     const obtainedYear = draft.trim() ? Number(draft) : null;
+    const current = qualifications.find((q) => q.id === id);
     if (current && current.obtainedYear === obtainedYear) return;
+    await saveQualification(id, { obtainedYear });
+  }
 
-    setIsSubmitting(true);
-    setError(null);
+  async function handleExpirationBlur(id: string) {
+    const draft = expirationDrafts[id];
+    if (draft === undefined) return;
+    const current = qualifications.find((q) => q.id === id);
+    if (current?.noExpiration) return;
+    const expirationDate = draft.trim() || null;
+    if (current && current.expirationDate === expirationDate) return;
+    await saveQualification(id, { expirationDate });
+  }
 
-    const supabase = createClient();
-    const { error: updateError } = await updateUserQualificationYear(
-      supabase,
-      userQualificationId,
-      obtainedYear,
-    );
-
-    setIsSubmitting(false);
-
-    if (updateError) {
-      console.error("[qualifications] year update failed:", updateError);
-      setError(QUALIFICATION_EDITOR_LABELS.updateError);
-      return;
-    }
-
-    setQualifications((prev) =>
-      prev.map((q) => (q.id === userQualificationId ? { ...q, obtainedYear } : q)),
-    );
+  async function handleNoExpirationToggle(id: string, checked: boolean) {
+    // Only override expirationDate when *checking* (clear it) -- unchecking
+    // leaves whatever date was already stored untouched (patch omits the key,
+    // so saveQualification's spread falls back to the current value).
+    await saveQualification(id, checked ? { noExpiration: true, expirationDate: null } : { noExpiration: false });
   }
 
   async function handleRemove(userQualificationId: string) {
@@ -187,6 +230,30 @@ export function QualificationsManager({
               className="h-9"
             />
           </div>
+          <div className="flex w-40 flex-col gap-1.5">
+            <Label htmlFor={`qual-expiration-${qualification.id}`} className="sr-only">
+              {QUALIFICATION_EDITOR_LABELS.expirationDateLabel}
+            </Label>
+            <Input
+              id={`qual-expiration-${qualification.id}`}
+              type="date"
+              disabled={isSubmitting || qualification.noExpiration}
+              value={expirationValue(qualification)}
+              onChange={(event) =>
+                setExpirationDrafts((prev) => ({ ...prev, [qualification.id]: event.target.value }))
+              }
+              onBlur={() => handleExpirationBlur(qualification.id)}
+              className="h-9"
+            />
+          </div>
+          <label className="flex h-9 shrink-0 cursor-pointer items-center gap-2 text-xs text-foreground">
+            <Checkbox
+              checked={qualification.noExpiration}
+              disabled={isSubmitting}
+              onCheckedChange={(checked) => handleNoExpirationToggle(qualification.id, checked)}
+            />
+            {QUALIFICATION_EDITOR_LABELS.noExpirationLabel}
+          </label>
           <button
             type="button"
             onClick={() => handleRemove(qualification.id)}
@@ -232,6 +299,29 @@ export function QualificationsManager({
               className="h-9"
             />
           </div>
+          <div className="flex w-40 flex-col gap-1.5">
+            <Label htmlFor="new-qualification-expiration">
+              {QUALIFICATION_EDITOR_LABELS.expirationDateLabel}
+            </Label>
+            <Input
+              id="new-qualification-expiration"
+              type="date"
+              disabled={newNoExpiration}
+              value={newExpirationDate}
+              onChange={(event) => setNewExpirationDate(event.target.value)}
+              className="h-9"
+            />
+          </div>
+          <label className="flex h-9 shrink-0 cursor-pointer items-center gap-2 text-xs text-foreground">
+            <Checkbox
+              checked={newNoExpiration}
+              onCheckedChange={(checked) => {
+                setNewNoExpiration(checked);
+                if (checked) setNewExpirationDate("");
+              }}
+            />
+            {QUALIFICATION_EDITOR_LABELS.noExpirationLabel}
+          </label>
           <button
             type="button"
             onClick={handleAdd}
