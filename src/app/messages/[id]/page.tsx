@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { EngineerConversationList } from "@/components/messages/EngineerConversationList";
 import { EngineerMessageThread } from "@/components/messages/EngineerMessageThread";
-import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
+import { ENGINEER_NAV } from "@/constants/dashboard";
 import {
   ENGINEER_CONVERSATION_NOT_FOUND_LABELS,
   ENGINEER_MESSAGES_PAGE,
@@ -11,6 +11,7 @@ import {
 } from "@/constants/engineer-messages";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateConversationForApplication, listMyConversations } from "@/lib/engineer/chat";
+import { getEngineerHeaderIdentity } from "@/lib/engineer/profile";
 
 interface ConversationPageProps {
   params: Promise<{ id: string }>;
@@ -22,11 +23,11 @@ export const metadata: Metadata = {
 
 export default async function ConversationPage({ params }: ConversationPageProps) {
   const { id } = await params;
-  const user = USER_MENU.engineer;
   const supabase = await createClient();
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
+  const identity = await getEngineerHeaderIdentity(supabase, authUser);
 
   if (!authUser) {
     return (
@@ -34,8 +35,9 @@ export default async function ConversationPage({ params }: ConversationPageProps
         navItems={ENGINEER_NAV}
         activeHref="/messages"
         pageTitle={ENGINEER_MESSAGES_PAGE.title}
-        userName={user.name}
-        userInitials={user.initials}
+        userName={identity.name}
+        userInitials={identity.initials}
+        userEmail={identity.email}
       >
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
           <p className="text-sm font-semibold text-foreground">
@@ -67,8 +69,9 @@ export default async function ConversationPage({ params }: ConversationPageProps
         navItems={ENGINEER_NAV}
         activeHref="/messages"
         pageTitle={ENGINEER_MESSAGES_PAGE.title}
-        userName={user.name}
-        userInitials={user.initials}
+        userName={identity.name}
+        userInitials={identity.initials}
+        userEmail={identity.email}
       >
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
           <p className="text-sm font-semibold text-foreground">
@@ -93,8 +96,9 @@ export default async function ConversationPage({ params }: ConversationPageProps
       navItems={ENGINEER_NAV}
       activeHref="/messages"
       pageTitle={conversation.companyName}
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <p className="hidden text-sm text-muted-foreground lg:block">
         {ENGINEER_MESSAGES_PAGE.description}

@@ -1,9 +1,8 @@
 /**
- * Chat / messaging module placeholder content (Japanese).
- * UI only — no backend, no real data, no realtime, no authentication.
+ * Chat / messaging module static label content (Japanese).
  *
- * Viewer perspective: the logged-in engineer (USER_MENU.engineer). Each
- * conversation's "participant" is the company-side recruiter/contact.
+ * Viewer perspective: the logged-in engineer. Each conversation's
+ * "participant" is the company-side recruiter/contact.
  */
 
 // ============================================================

@@ -109,6 +109,40 @@ export async function updateUserName(
   return supabase.from("users").update({ name }).eq("id", userId).select("id, name").single();
 }
 
+export interface EngineerHeaderIdentity {
+  name: string;
+  email: string;
+  initials: string;
+}
+
+const ENGINEER_HEADER_FALLBACK_NAME = "エンジニア";
+
+/**
+ * Real display identity for the shared UserMenu header (top-right pill +
+ * dropdown) -- replaces the old hardcoded USER_MENU.engineer placeholder.
+ * On the no-session / missing-row path this falls back to a generic role
+ * label, never to a name that could be mistaken for a real signed-in person.
+ */
+export async function getEngineerHeaderIdentity(
+  supabase: SupabaseClient,
+  authUser: { id: string; email?: string | null } | null,
+): Promise<EngineerHeaderIdentity> {
+  if (!authUser) {
+    return { name: ENGINEER_HEADER_FALLBACK_NAME, email: "", initials: "?" };
+  }
+
+  const { data } = await supabase
+    .from("users")
+    .select("name, email")
+    .eq("id", authUser.id)
+    .maybeSingle();
+
+  const name = (data?.name as string | undefined)?.trim() || ENGINEER_HEADER_FALLBACK_NAME;
+  const email = (data?.email as string | undefined) ?? authUser.email ?? "";
+
+  return { name, email, initials: name.charAt(0) || "?" };
+}
+
 /**
  * Narrow upsert for the Settings page's public-profile toggle -- unlike
  * saveEngineerProfile() this doesn't require the full profile input, since

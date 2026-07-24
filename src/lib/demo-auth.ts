@@ -1,13 +1,11 @@
 /**
- * Demo authentication utility.
+ * Dev-only login-form autofill helper (see LOGIN_DEMO_HELPER / LoginCard,
+ * gated to non-production builds). These are real seeded Supabase accounts
+ * -- signing in still goes through real supabase.auth.signInWithPassword,
+ * this module only exists to pre-fill the two form fields.
  *
- * This is a UI-only demo helper — there is no backend, no database, and no
- * real session handling behind it. Credentials below exist purely so the
- * login/registration UI has something deterministic to compare against.
- *
- * Do not treat this as secure authentication. Do not persist these
- * passwords (or any user-entered password) to localStorage, sessionStorage,
- * or cookies.
+ * Do not persist these passwords (or any user-entered password) to
+ * localStorage, sessionStorage, or cookies.
  */
 
 export type DemoRole = "engineer" | "company" | "admin";

@@ -11,6 +11,7 @@ interface DashboardShellProps {
   pageTitle: string;
   userName: string;
   userInitials: string;
+  userEmail?: string;
   children: ReactNode;
 }
 
@@ -20,6 +21,7 @@ export function DashboardShell({
   pageTitle,
   userName,
   userInitials,
+  userEmail,
   children,
 }: DashboardShellProps) {
   return (
@@ -33,6 +35,7 @@ export function DashboardShell({
           pageTitle={pageTitle}
           userName={userName}
           userInitials={userInitials}
+          userEmail={userEmail}
         />
 
         <main className="flex-1 px-4 py-6 md:px-6 md:py-8 lg:px-8">

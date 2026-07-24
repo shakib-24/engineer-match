@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { SearchHeader } from "@/components/jobs/SearchHeader";
 import { JobList } from "@/components/jobs/JobList";
-import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
+import { ENGINEER_NAV } from "@/constants/dashboard";
 import {
   ERROR_STATE_LABELS,
   LOADING_STATE_LABELS,
@@ -15,6 +15,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { listPublishedOpportunities, type CompanyContractType } from "@/lib/engineer/opportunities";
 import { listMyFavoriteOpportunityIds } from "@/lib/engineer/favorites";
+import { getEngineerHeaderIdentity } from "@/lib/engineer/profile";
 
 export const metadata: Metadata = {
   title: "求人・案件検索 | ENGINEER MATCH",
@@ -113,7 +114,11 @@ async function JobListSection({
 
 export default async function EngineerJobsPage({ searchParams }: EngineerJobsPageProps) {
   const params = await searchParams;
-  const user = USER_MENU.engineer;
+  const supabase = await createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  const identity = await getEngineerHeaderIdentity(supabase, authUser);
 
   const search = params.search?.trim() ?? "";
   const contractType = (
@@ -129,8 +134,9 @@ export default async function EngineerJobsPage({ searchParams }: EngineerJobsPag
       navItems={ENGINEER_NAV}
       activeHref="/engineer/jobs"
       pageTitle={SEARCH_HEADER.title}
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <SearchHeader />
       <Suspense fallback={<LoadingState />} key={`${search}-${contractType}-${sort}-${page}`}>

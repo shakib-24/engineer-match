@@ -65,18 +65,17 @@ export const LOGIN_ERRORS = {
   unexpected: "通信エラーが発生しました。しばらくしてから再度お試しください。",
 } as const;
 
+/**
+ * Dev-only convenience: autofills the login form with a seeded test
+ * account. Gated to non-production builds in LoginCard -- never rendered
+ * in production, since these are real credentials against real auth.
+ */
 export const LOGIN_DEMO_HELPER = {
-  title: "デモアカウント",
+  title: "デモアカウント（開発用）",
   fillButtonLabel: "デモ情報を入力",
 } as const;
 
-export const DEMO_AUTH_NOTICE = {
-  line1: "※ 現在はUIデモ版です。",
-  line2: "実際の認証・データ保存は行われません。",
-} as const;
-
-export const AUTH_DEMO_ACTION_NOTICE =
-  "※ UIデモのため、この機能はご利用いただけません。";
+export const AUTH_DEMO_ACTION_NOTICE = "※ この機能は現在ご利用いただけません。";
 
 export const REGISTER_VISUAL = {
   imageSrc: "/image/ChatGPT Image Jul 13, 2026, 04_43_45 PM developer .png",

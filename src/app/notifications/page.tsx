@@ -2,32 +2,34 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { EngineerNotificationList } from "@/components/notifications/EngineerNotificationList";
-import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
+import { ENGINEER_NAV } from "@/constants/dashboard";
 import {
   ENGINEER_NOTIFICATIONS_PAGE,
   ENGINEER_NOTIFICATIONS_SIGN_IN_REQUIRED_LABELS,
 } from "@/constants/engineer-notifications";
 import { createClient } from "@/lib/supabase/server";
 import { listMyNotifications } from "@/lib/engineer/notifications";
+import { getEngineerHeaderIdentity } from "@/lib/engineer/profile";
 
 export const metadata: Metadata = {
   title: `${ENGINEER_NOTIFICATIONS_PAGE.title} | ENGINEER MATCH`,
 };
 
 export default async function NotificationsPage() {
-  const user = USER_MENU.engineer;
   const supabase = await createClient();
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
+  const identity = await getEngineerHeaderIdentity(supabase, authUser);
 
   return (
     <DashboardShell
       navItems={ENGINEER_NAV}
       activeHref="/notifications"
       pageTitle={ENGINEER_NOTIFICATIONS_PAGE.title}
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <p className="text-sm text-muted-foreground">{ENGINEER_NOTIFICATIONS_PAGE.description}</p>
 

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import { Loader2 } from "lucide-react";
 import { AuthHero } from "@/components/auth/AuthHero";
-import { DemoAuthNotice } from "@/components/auth/DemoAuthNotice";
 import { RoleSelector } from "@/components/auth/RoleSelector";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { Button } from "@/components/ui/button";
@@ -59,6 +58,7 @@ function GitHubIcon(props: ComponentProps<"svg">) {
 }
 
 const ERROR_MESSAGE_ID = "login-error-message";
+const SHOW_DEV_DEMO_HELPER = process.env.NODE_ENV !== "production";
 
 export function LoginCard() {
   const prefersReducedMotion = useReducedMotion();
@@ -209,10 +209,6 @@ export function LoginCard() {
             {LOGIN_FORM.description}
           </p>
 
-          <div className="mt-5">
-            <DemoAuthNotice />
-          </div>
-
           <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
             <div className="flex flex-col gap-2.5">
               <span className="text-sm leading-none font-medium text-white/90">
@@ -226,41 +222,43 @@ export function LoginCard() {
               />
             </div>
 
-            <div className="rounded-xl border border-white/15 bg-white/5 p-4 text-xs text-white/70">
-              <p className="font-semibold text-white/90">
-                {LOGIN_DEMO_HELPER.title}
-              </p>
-              <div className="mt-2.5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="min-w-0">
-                  <p className="font-medium text-white/80">
-                    {LOGIN_ROLE_OPTIONS.engineer.title}
-                  </p>
-                  <p className="mt-0.5 truncate">{DEMO_ACCOUNTS.engineer.email}</p>
-                  <p>Password: {DEMO_ACCOUNTS.engineer.password}</p>
+            {SHOW_DEV_DEMO_HELPER && (
+              <div className="rounded-xl border border-white/15 bg-white/5 p-4 text-xs text-white/70">
+                <p className="font-semibold text-white/90">
+                  {LOGIN_DEMO_HELPER.title}
+                </p>
+                <div className="mt-2.5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-white/80">
+                      {LOGIN_ROLE_OPTIONS.engineer.title}
+                    </p>
+                    <p className="mt-0.5 truncate">{DEMO_ACCOUNTS.engineer.email}</p>
+                    <p>Password: {DEMO_ACCOUNTS.engineer.password}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-white/80">
+                      {LOGIN_ROLE_OPTIONS.company.title}
+                    </p>
+                    <p className="mt-0.5 truncate">{DEMO_ACCOUNTS.company.email}</p>
+                    <p>Password: {DEMO_ACCOUNTS.company.password}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-white/80">
+                      {LOGIN_ROLE_OPTIONS.admin.title}
+                    </p>
+                    <p className="mt-0.5 truncate">{DEMO_ACCOUNTS.admin.email}</p>
+                    <p>Password: {DEMO_ACCOUNTS.admin.password}</p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="font-medium text-white/80">
-                    {LOGIN_ROLE_OPTIONS.company.title}
-                  </p>
-                  <p className="mt-0.5 truncate">{DEMO_ACCOUNTS.company.email}</p>
-                  <p>Password: {DEMO_ACCOUNTS.company.password}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="font-medium text-white/80">
-                    {LOGIN_ROLE_OPTIONS.admin.title}
-                  </p>
-                  <p className="mt-0.5 truncate">{DEMO_ACCOUNTS.admin.email}</p>
-                  <p>Password: {DEMO_ACCOUNTS.admin.password}</p>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleDemoFill}
+                  className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-white/30 bg-white/10 px-3.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none"
+                >
+                  {LOGIN_DEMO_HELPER.fillButtonLabel}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleDemoFill}
-                className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-white/30 bg-white/10 px-3.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none"
-              >
-                {LOGIN_DEMO_HELPER.fillButtonLabel}
-              </button>
-            </div>
+            )}
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="email" className="text-white/90">

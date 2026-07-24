@@ -13,7 +13,6 @@ import {
   ENGINEER_SKILL_SUMMARY,
   ENGINEER_STATS_LABELS,
   ENGINEER_WELCOME,
-  USER_MENU,
 } from "@/constants/dashboard";
 import { APPLICATION_STATUS_LABEL } from "@/constants/applications";
 import { ITSS_LEVELS } from "@/constants/lp";
@@ -27,7 +26,6 @@ export const metadata: Metadata = {
 };
 
 export default async function EngineerDashboardPage() {
-  const user = USER_MENU.engineer;
   const supabase = await createClient();
   const {
     data: { user: authUser },
@@ -41,6 +39,7 @@ export default async function EngineerDashboardPage() {
     : [{ data: null }, null];
 
   const name = (userRow?.name as string | undefined) ?? "";
+  const email = authUser?.email ?? "";
   const itssLevelInfo = dashboard?.maxItssLevel
     ? ITSS_LEVELS.find((item) => item.level === dashboard.maxItssLevel)
     : null;
@@ -50,8 +49,9 @@ export default async function EngineerDashboardPage() {
       navItems={ENGINEER_NAV}
       activeHref="/engineer/dashboard"
       pageTitle="ダッシュボード"
-      userName={user.name}
-      userInitials={user.initials}
+      userName={name || "エンジニア"}
+      userInitials={name ? name.charAt(0) : "?"}
+      userEmail={email}
     >
       <div>
         <h2 className="text-2xl leading-tight font-bold tracking-tight text-foreground">

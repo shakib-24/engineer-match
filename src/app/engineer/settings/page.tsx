@@ -3,11 +3,11 @@ import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { EngineerPrivacySettings } from "@/components/engineer/settings/EngineerPrivacySettings";
 import { EngineerSecuritySettings } from "@/components/engineer/settings/EngineerSecuritySettings";
-import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
+import { ENGINEER_NAV } from "@/constants/dashboard";
 import { ENGINEER_SETTINGS_PAGE } from "@/constants/engineer-settings";
 import { SIGN_IN_REQUIRED_LABELS } from "@/constants/applications";
 import { createClient } from "@/lib/supabase/server";
-import { getEngineerProfile } from "@/lib/engineer/profile";
+import { getEngineerHeaderIdentity, getEngineerProfile } from "@/lib/engineer/profile";
 
 export const metadata: Metadata = {
   title: `${ENGINEER_SETTINGS_PAGE.title} | ENGINEER MATCH`,
@@ -15,21 +15,24 @@ export const metadata: Metadata = {
 };
 
 export default async function EngineerSettingsPage() {
-  const user = USER_MENU.engineer;
   const supabase = await createClient();
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
-  const profile = authUser ? await getEngineerProfile(supabase, authUser.id) : null;
+  const [profile, identity] = await Promise.all([
+    authUser ? getEngineerProfile(supabase, authUser.id) : Promise.resolve(null),
+    getEngineerHeaderIdentity(supabase, authUser),
+  ]);
 
   return (
     <DashboardShell
       navItems={ENGINEER_NAV}
       activeHref="/engineer/settings"
       pageTitle={ENGINEER_SETTINGS_PAGE.title}
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <div>
         <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">

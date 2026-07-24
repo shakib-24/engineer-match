@@ -3,10 +3,11 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { AssessmentRunner } from "@/components/engineer/profile/AssessmentRunner";
-import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
+import { ENGINEER_NAV } from "@/constants/dashboard";
 import { ASSESSMENT_ERROR_LABELS, ASSESSMENT_PAGE_META } from "@/constants/skill-assessment";
 import { createClient } from "@/lib/supabase/server";
 import { getAssessmentByCode } from "@/lib/engineer/skill-assessments";
+import { getEngineerHeaderIdentity } from "@/lib/engineer/profile";
 
 interface AssessmentPageProps {
   params: Promise<{ code: string }>;
@@ -49,22 +50,25 @@ function InfoState({
 
 export default async function EngineerSkillAssessmentPage({ params }: AssessmentPageProps) {
   const { code } = await params;
-  const user = USER_MENU.engineer;
   const supabase = await createClient();
 
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
-  const result = authUser ? await getAssessmentByCode(supabase, code) : null;
+  const [result, identity] = await Promise.all([
+    authUser ? getAssessmentByCode(supabase, code) : Promise.resolve(null),
+    getEngineerHeaderIdentity(supabase, authUser),
+  ]);
 
   return (
     <DashboardShell
       navItems={ENGINEER_NAV}
       activeHref="/engineer/profile"
       pageTitle="スキル診断"
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <div>
         <Link

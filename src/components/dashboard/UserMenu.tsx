@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 interface UserMenuProps {
   userName: string;
   userInitials: string;
+  userEmail?: string;
 }
 
 /**
@@ -16,7 +17,7 @@ interface UserMenuProps {
  * company) and AdminTopbar. Single source of truth for the real
  * supabase.auth.signOut() call so no caller re-implements it.
  */
-export function UserMenu({ userName, userInitials }: UserMenuProps) {
+export function UserMenu({ userName, userInitials, userEmail }: UserMenuProps) {
   const router = useRouter();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -75,8 +76,16 @@ export function UserMenu({ userName, userInitials }: UserMenuProps) {
           />
           <div
             role="menu"
-            className="absolute top-full right-0 z-40 mt-2 w-48 rounded-xl border border-border bg-surface py-1.5 shadow-lg"
+            className="absolute top-full right-0 z-40 mt-2 w-56 rounded-xl border border-border bg-surface py-1.5 shadow-lg"
           >
+            {userEmail && (
+              <p
+                className="truncate border-b border-border px-4 pt-1 pb-2 text-xs text-muted-foreground"
+                title={userEmail}
+              >
+                {userEmail}
+              </p>
+            )}
             <button
               type="button"
               role="menuitem"

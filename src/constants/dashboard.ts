@@ -28,8 +28,12 @@ export const COMPANY_NAV = [
   { href: "/company/settings", label: "設定", icon: "settings" },
 ] as const;
 
+/**
+ * Company header identity is still a placeholder (real per-company-user
+ * identity is out of scope for this pass -- see getEngineerHeaderIdentity()
+ * in src/lib/engineer/profile.ts for the Engineer-side real-data version).
+ */
 export const USER_MENU = {
-  engineer: { name: "山田 太郎", role: "エンジニア", initials: "山田" },
   company: { name: "株式会社テックイノベーション", role: "採用担当", initials: "採用" },
 } as const;
 

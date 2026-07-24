@@ -7,12 +7,13 @@ import { JobDescription } from "@/components/jobs/JobDescription";
 import { RequiredSkills } from "@/components/jobs/RequiredSkills";
 import { CompanyInfo } from "@/components/jobs/CompanyInfo";
 import { ApplySidebar } from "@/components/jobs/ApplySidebar";
-import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
+import { ENGINEER_NAV } from "@/constants/dashboard";
 import { JOB_DETAIL_META, JOB_NOT_FOUND_LABELS, SIGN_IN_REQUIRED_LABELS } from "@/constants/jobs";
 import { createClient } from "@/lib/supabase/server";
 import { getPublishedOpportunity } from "@/lib/engineer/opportunities";
 import { getMyApplicationFor } from "@/lib/engineer/applications";
 import { isOpportunityFavorited } from "@/lib/engineer/favorites";
+import { getEngineerHeaderIdentity } from "@/lib/engineer/profile";
 import { formatSalaryLabelFromDetail, formatDateJa } from "@/lib/engineer/format";
 
 interface JobDetailPageProps {
@@ -33,14 +34,16 @@ export async function generateMetadata({
 
 export default async function EngineerJobDetailPage({ params }: JobDetailPageProps) {
   const { id } = await params;
-  const user = USER_MENU.engineer;
   const supabase = await createClient();
 
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
-  const detail = await getPublishedOpportunity(supabase, id);
+  const [detail, identity] = await Promise.all([
+    getPublishedOpportunity(supabase, id),
+    getEngineerHeaderIdentity(supabase, authUser),
+  ]);
 
   if (!detail) {
     return (
@@ -48,8 +51,9 @@ export default async function EngineerJobDetailPage({ params }: JobDetailPagePro
         navItems={ENGINEER_NAV}
         activeHref="/engineer/jobs"
         pageTitle="求人詳細"
-        userName={user.name}
-        userInitials={user.initials}
+        userName={identity.name}
+        userInitials={identity.initials}
+        userEmail={identity.email}
       >
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
           <p className="text-sm font-semibold text-foreground">{JOB_NOT_FOUND_LABELS.title}</p>
@@ -71,8 +75,9 @@ export default async function EngineerJobDetailPage({ params }: JobDetailPagePro
         navItems={ENGINEER_NAV}
         activeHref="/engineer/jobs"
         pageTitle="求人詳細"
-        userName={user.name}
-        userInitials={user.initials}
+        userName={identity.name}
+        userInitials={identity.initials}
+        userEmail={identity.email}
       >
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
           <p className="text-sm font-semibold text-foreground">{SIGN_IN_REQUIRED_LABELS.title}</p>
@@ -105,8 +110,9 @@ export default async function EngineerJobDetailPage({ params }: JobDetailPagePro
       navItems={ENGINEER_NAV}
       activeHref="/engineer/jobs"
       pageTitle="求人詳細"
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <div>
         <Link

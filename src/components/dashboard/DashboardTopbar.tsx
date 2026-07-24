@@ -18,6 +18,7 @@ interface DashboardTopbarProps {
   pageTitle: string;
   userName: string;
   userInitials: string;
+  userEmail?: string;
 }
 
 export function DashboardTopbar({
@@ -26,6 +27,7 @@ export function DashboardTopbar({
   pageTitle,
   userName,
   userInitials,
+  userEmail,
 }: DashboardTopbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const closeMenu = () => setIsMenuOpen(false);
@@ -58,7 +60,7 @@ export function DashboardTopbar({
         </div>
 
         {hasWorkingLogout ? (
-          <UserMenu userName={userName} userInitials={userInitials} />
+          <UserMenu userName={userName} userInitials={userInitials} userEmail={userEmail} />
         ) : (
           <div className="flex items-center gap-2 rounded-full border border-border py-1.5 pr-3 pl-1.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">

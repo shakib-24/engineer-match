@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { ApplicationDetailView } from "@/components/applications/ApplicationDetailView";
-import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
+import { ENGINEER_NAV } from "@/constants/dashboard";
 import {
   APPLICATION_NOT_FOUND_LABELS,
   DETAIL_META,
@@ -11,6 +11,7 @@ import {
 } from "@/constants/applications";
 import { createClient } from "@/lib/supabase/server";
 import { getMyApplicationDetail } from "@/lib/engineer/applications";
+import { getEngineerHeaderIdentity } from "@/lib/engineer/profile";
 
 interface ApplicationDetailPageProps {
   params: Promise<{ id: string }>;
@@ -57,21 +58,24 @@ export default async function EngineerApplicationDetailPage({
   params,
 }: ApplicationDetailPageProps) {
   const { id } = await params;
-  const user = USER_MENU.engineer;
   const supabase = await createClient();
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
-  const detail = authUser ? await getMyApplicationDetail(supabase, authUser.id, id) : null;
+  const [detail, identity] = await Promise.all([
+    authUser ? getMyApplicationDetail(supabase, authUser.id, id) : Promise.resolve(null),
+    getEngineerHeaderIdentity(supabase, authUser),
+  ]);
 
   return (
     <DashboardShell
       navItems={ENGINEER_NAV}
       activeHref="/engineer/applications"
       pageTitle="応募詳細"
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <div>
         <Link

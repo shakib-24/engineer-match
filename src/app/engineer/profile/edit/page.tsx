@@ -24,7 +24,7 @@ import { EducationManager } from "@/components/engineer/profile/EducationManager
 import { LanguagesManager } from "@/components/engineer/profile/LanguagesManager";
 import { PortfolioManager } from "@/components/engineer/profile/PortfolioManager";
 import { PreferredConditionsManager } from "@/components/engineer/profile/PreferredConditionsManager";
-import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
+import { ENGINEER_NAV } from "@/constants/dashboard";
 import {
   BUSINESS_SKILL_EDIT_NOTE,
   HUMAN_SKILL_EDIT_NOTE,
@@ -52,7 +52,6 @@ export const metadata: Metadata = {
 };
 
 export default async function EngineerProfileEditPage() {
-  const user = USER_MENU.engineer;
   const supabase = await createClient();
   const {
     data: { user: authUser },
@@ -100,8 +99,9 @@ export default async function EngineerProfileEditPage() {
       navItems={ENGINEER_NAV}
       activeHref="/engineer/profile"
       pageTitle={PROFILE_EDIT_META.pageTitle}
-      userName={user.name}
-      userInitials={user.initials}
+      userName={name || "エンジニア"}
+      userInitials={name ? name.charAt(0) : "?"}
+      userEmail={email}
     >
       <div>
         <Link

@@ -3,9 +3,10 @@ import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { FavoriteHeader } from "@/components/favorites/FavoriteHeader";
 import { FavoriteList } from "@/components/favorites/FavoriteList";
-import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
+import { ENGINEER_NAV } from "@/constants/dashboard";
 import { FAVORITES_PAGE, SIGN_IN_REQUIRED_LABELS } from "@/constants/favorites";
 import { createClient } from "@/lib/supabase/server";
+import { getEngineerHeaderIdentity } from "@/lib/engineer/profile";
 import { listMyFavoriteOpportunities } from "@/lib/engineer/favorites";
 
 export const metadata: Metadata = {
@@ -14,19 +15,20 @@ export const metadata: Metadata = {
 };
 
 export default async function EngineerFavoritesPage() {
-  const user = USER_MENU.engineer;
   const supabase = await createClient();
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
+  const identity = await getEngineerHeaderIdentity(supabase, authUser);
 
   return (
     <DashboardShell
       navItems={ENGINEER_NAV}
       activeHref="/engineer/favorites"
       pageTitle={FAVORITES_PAGE.title}
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <FavoriteHeader />
 

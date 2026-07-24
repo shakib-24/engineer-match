@@ -24,7 +24,7 @@ import { EducationList } from "@/components/engineer/profile/EducationList";
 import { LanguageList } from "@/components/engineer/profile/LanguageList";
 import { PortfolioProjectCard } from "@/components/engineer/profile/PortfolioProjectCard";
 import { PreferredConditionsDisplay } from "@/components/engineer/profile/PreferredConditionsDisplay";
-import { ENGINEER_NAV, USER_MENU } from "@/constants/dashboard";
+import { ENGINEER_NAV } from "@/constants/dashboard";
 import {
   AVAILABILITY_STATUS_OPTIONS,
   BASIC_INFO_LABELS,
@@ -89,7 +89,6 @@ function optionLabel<T extends string>(
 }
 
 export default async function EngineerProfilePage() {
-  const user = USER_MENU.engineer;
   const supabase = await createClient();
   const {
     data: { user: authUser },
@@ -164,8 +163,9 @@ export default async function EngineerProfilePage() {
       navItems={ENGINEER_NAV}
       activeHref="/engineer/profile"
       pageTitle="プロフィール"
-      userName={user.name}
-      userInitials={user.initials}
+      userName={name || "エンジニア"}
+      userInitials={name ? name.charAt(0) : "?"}
+      userEmail={email}
     >
       <ProfileHeader
         name={name}
