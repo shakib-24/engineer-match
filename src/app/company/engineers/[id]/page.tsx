@@ -13,10 +13,11 @@ import { EducationSection } from "@/components/company/profile-sections/Educatio
 import { PortfolioSection } from "@/components/company/profile-sections/PortfolioSection";
 import { LanguagesSection } from "@/components/company/profile-sections/LanguagesSection";
 import { PreferredConditionsSection } from "@/components/company/profile-sections/PreferredConditionsSection";
-import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
+import { COMPANY_NAV } from "@/constants/dashboard";
 import { ENGINEER_DETAIL_META } from "@/constants/company-engineers";
 import { createClient } from "@/lib/supabase/server";
 import { getSearchableEngineerDetail } from "@/lib/company/engineers";
+import { getCompanyHeaderIdentity } from "@/lib/company/profile";
 
 interface EngineerDetailPageProps {
   params: Promise<{ id: string }>;
@@ -39,21 +40,26 @@ export default async function CompanyEngineerDetailPage({
 }: EngineerDetailPageProps) {
   const { id } = await params;
   const supabase = await createClient();
-  const engineer = await getSearchableEngineerDetail(supabase, id);
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  const [engineer, identity] = await Promise.all([
+    getSearchableEngineerDetail(supabase, id),
+    getCompanyHeaderIdentity(supabase, authUser),
+  ]);
 
   if (!engineer) {
     notFound();
   }
-
-  const user = USER_MENU.company;
 
   return (
     <DashboardShell
       navItems={COMPANY_NAV}
       activeHref="/company/engineers"
       pageTitle="エンジニア詳細"
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <div>
         <Link

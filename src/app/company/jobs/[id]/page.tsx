@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { JobDetailActions } from "@/components/company/JobStatusBadge";
-import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
+import { COMPANY_NAV } from "@/constants/dashboard";
 import {
   CONTRACT_TYPE_BADGE_STYLES,
   CONTRACT_TYPE_LABEL,
@@ -14,6 +14,7 @@ import {
 } from "@/constants/company-jobs";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyOpportunity, listSkills } from "@/lib/company/jobs";
+import { getCompanyHeaderIdentity } from "@/lib/company/profile";
 
 interface CompanyJobDetailPageProps {
   params: Promise<{ id: string }>;
@@ -55,18 +56,20 @@ export default async function CompanyJobDetailPage({ params }: CompanyJobDetailP
   }
 
   const { opportunity, employment, project, hourly, requiredSkillIds } = detail;
-  const skills = await listSkills(supabase);
+  const [skills, identity] = await Promise.all([
+    listSkills(supabase),
+    getCompanyHeaderIdentity(supabase, authUser),
+  ]);
   const requiredSkillNames = skills.filter((skill) => requiredSkillIds.includes(skill.id));
-
-  const user = USER_MENU.company;
 
   return (
     <DashboardShell
       navItems={COMPANY_NAV}
       activeHref="/company/jobs"
       pageTitle="求人詳細"
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <div>
         <Link

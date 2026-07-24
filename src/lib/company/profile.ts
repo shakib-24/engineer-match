@@ -68,3 +68,42 @@ export async function saveCompanyProfile(
     .select("*")
     .single();
 }
+
+export interface CompanyHeaderIdentity {
+  name: string;
+  email: string;
+  initials: string;
+}
+
+const COMPANY_HEADER_FALLBACK_NAME = "企業アカウント";
+
+/**
+ * Real display identity for the shared UserMenu header -- replaces the old
+ * hardcoded USER_MENU.company placeholder, mirroring
+ * getEngineerHeaderIdentity() in src/lib/engineer/profile.ts. Prefers the
+ * company_profiles.company_name (the name the company itself set), falling
+ * back to public.users.name (populated from signup metadata, present even
+ * before a company_profiles row exists) and finally to a generic account
+ * label -- never a name that could be mistaken for a real company.
+ */
+export async function getCompanyHeaderIdentity(
+  supabase: SupabaseClient,
+  authUser: { id: string; email?: string | null } | null,
+): Promise<CompanyHeaderIdentity> {
+  if (!authUser) {
+    return { name: COMPANY_HEADER_FALLBACK_NAME, email: "", initials: "?" };
+  }
+
+  const [{ data: userRow }, { data: profileRow }] = await Promise.all([
+    supabase.from("users").select("name, email").eq("id", authUser.id).maybeSingle(),
+    supabase.from("company_profiles").select("company_name").eq("id", authUser.id).maybeSingle(),
+  ]);
+
+  const name =
+    (profileRow?.company_name as string | undefined)?.trim() ||
+    (userRow?.name as string | undefined)?.trim() ||
+    COMPANY_HEADER_FALLBACK_NAME;
+  const email = (userRow?.email as string | undefined) ?? authUser.email ?? "";
+
+  return { name, email, initials: name.charAt(0) || "?" };
+}

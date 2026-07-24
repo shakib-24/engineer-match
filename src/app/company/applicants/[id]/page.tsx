@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Briefcase, Users } from "lucide-react";
+import { ArrowLeft, Briefcase, MessageSquare, Users } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import {
   ApplicantStatusActions,
@@ -18,11 +18,12 @@ import { PortfolioSection } from "@/components/company/profile-sections/Portfoli
 import { LanguagesSection } from "@/components/company/profile-sections/LanguagesSection";
 import { PreferredConditionsSection } from "@/components/company/profile-sections/PreferredConditionsSection";
 import { ContactDetailsSection } from "@/components/company/profile-sections/ContactDetailsSection";
-import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
+import { COMPANY_NAV } from "@/constants/dashboard";
 import { APPLICANT_DETAIL_META } from "@/constants/company-applicants";
 import { CONTRACT_TYPE_LABEL } from "@/constants/jobs";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyApplicantDetail } from "@/lib/company/applicants";
+import { getCompanyHeaderIdentity } from "@/lib/company/profile";
 
 interface ApplicantDetailPageProps {
   params: Promise<{ id: string }>;
@@ -60,21 +61,23 @@ export default async function CompanyApplicantDetailPage({
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
-  const applicant = authUser ? await getCompanyApplicantDetail(supabase, authUser.id, id) : null;
+  const [applicant, identity] = await Promise.all([
+    authUser ? getCompanyApplicantDetail(supabase, authUser.id, id) : Promise.resolve(null),
+    getCompanyHeaderIdentity(supabase, authUser),
+  ]);
 
   if (!applicant) {
     notFound();
   }
-
-  const user = USER_MENU.company;
 
   return (
     <DashboardShell
       navItems={COMPANY_NAV}
       activeHref="/company/applicants"
       pageTitle="応募者詳細"
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <div>
         <Link
@@ -151,6 +154,15 @@ export default async function CompanyApplicantDetailPage({
           </div>
 
           <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-1 lg:self-start">
+            <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+              <Link
+                href={`/company/messages/${applicant.id}`}
+                className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-primary text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
+                <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                メッセージを送る
+              </Link>
+            </div>
             <ApplicantProfileCard applicant={applicant} />
           </div>
         </div>

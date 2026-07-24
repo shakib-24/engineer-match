@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { ApplicantList } from "@/components/company/applicants/ApplicantList";
-import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
+import { COMPANY_NAV } from "@/constants/dashboard";
 import { APPLICANTS_PAGE } from "@/constants/company-applicants";
 import { createClient } from "@/lib/supabase/server";
 import { listCompanyApplicants } from "@/lib/company/applicants";
+import { getCompanyHeaderIdentity } from "@/lib/company/profile";
 
 export const metadata: Metadata = {
   title: "応募者管理 | ENGINEER MATCH",
@@ -12,21 +13,24 @@ export const metadata: Metadata = {
 };
 
 export default async function CompanyApplicantsPage() {
-  const user = USER_MENU.company;
   const supabase = await createClient();
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
-  const applicants = authUser ? await listCompanyApplicants(supabase, authUser.id) : [];
+  const [applicants, identity] = await Promise.all([
+    authUser ? listCompanyApplicants(supabase, authUser.id) : Promise.resolve([]),
+    getCompanyHeaderIdentity(supabase, authUser),
+  ]);
 
   return (
     <DashboardShell
       navItems={COMPANY_NAV}
       activeHref="/company/applicants"
       pageTitle={APPLICANTS_PAGE.title}
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <div>
         <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">

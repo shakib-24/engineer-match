@@ -1,6 +1,9 @@
 /**
- * Dashboard placeholder content (Japanese).
- * UI only — no backend, no real data, no authentication.
+ * Dashboard static label/navigation content (Japanese). Real per-user data
+ * (header identity, stats, recent activity) is fetched separately -- see
+ * src/lib/engineer/profile.ts (getEngineerHeaderIdentity) and
+ * src/lib/company/profile.ts / dashboard.ts (getCompanyHeaderIdentity,
+ * getCompanyDashboardData) -- rather than living in this file.
  */
 
 // ---- Navigation ----
@@ -27,15 +30,6 @@ export const COMPANY_NAV = [
   { href: "/company/notifications", label: "通知", icon: "bell" },
   { href: "/company/settings", label: "設定", icon: "settings" },
 ] as const;
-
-/**
- * Company header identity is still a placeholder (real per-company-user
- * identity is out of scope for this pass -- see getEngineerHeaderIdentity()
- * in src/lib/engineer/profile.ts for the Engineer-side real-data version).
- */
-export const USER_MENU = {
-  company: { name: "株式会社テックイノベーション", role: "採用担当", initials: "採用" },
-} as const;
 
 export const DASHBOARD_LOGOUT = {
   label: "ログアウト",
@@ -100,113 +94,6 @@ export const ENGINEER_SKILL_SUMMARY = {
 // ============================================================
 // Company overview
 // ============================================================
-
-export const COMPANY_WELCOME = {
-  greeting: "おかえりなさい、株式会社テックイノベーション様",
-  subtitle: "採用活動の状況を確認しましょう。",
-} as const;
-
-export const COMPANY_STATS = [
-  { label: "掲載中の求人・案件", value: "8", icon: "briefcase", helper: "公開中" },
-  { label: "応募者数", value: "24", icon: "users", helper: "今月" },
-  { label: "選考中", value: "11", icon: "clock", helper: "対応待ち" },
-  { label: "新規応募", value: "5", icon: "userPlus", helper: "過去7日間" },
-] as const;
-
-export const COMPANY_ACTIVE_OPPORTUNITIES = {
-  title: "掲載中の求人・案件",
-  description: "現在募集中の求人・案件と応募状況です。",
-  viewAllLabel: "求人・案件管理へ",
-  viewAllHref: "/company/jobs",
-  items: [
-    {
-      title: "バックエンドエンジニア（Java / Spring Boot）",
-      contractType: "就職",
-      applicantCount: 9,
-      status: "公開中",
-      postedAt: "2026年7月10日",
-    },
-    {
-      title: "フロントエンドエンジニア（React / TypeScript）",
-      contractType: "案件",
-      applicantCount: 6,
-      status: "公開中",
-      postedAt: "2026年7月8日",
-    },
-    {
-      title: "インフラエンジニア（AWS / Kubernetes）",
-      contractType: "時間清算",
-      applicantCount: 4,
-      status: "公開中",
-      postedAt: "2026年7月5日",
-    },
-  ],
-} as const;
-
-export const COMPANY_RECENT_APPLICANTS = {
-  title: "最近の応募者",
-  description: "直近で応募のあったエンジニアです。",
-  viewAllLabel: "応募者管理へ",
-  viewAllHref: "/company/applicants",
-  items: [
-    {
-      name: "佐藤 健太",
-      title: "バックエンドエンジニア（Java / Spring Boot）",
-      status: "書類選考中",
-      appliedAt: "2026年7月12日",
-    },
-    {
-      name: "鈴木 美咲",
-      title: "フロントエンドエンジニア（React / TypeScript）",
-      status: "面接調整中",
-      appliedAt: "2026年7月11日",
-    },
-    {
-      name: "高橋 大輔",
-      title: "インフラエンジニア（AWS / Kubernetes）",
-      status: "書類選考中",
-      appliedAt: "2026年7月9日",
-    },
-  ],
-} as const;
-
-export const COMPANY_CANDIDATE_RECOMMENDATIONS = {
-  title: "おすすめのエンジニア",
-  description: "募集条件に合った候補者をご紹介します。",
-  viewAllLabel: "エンジニアを検索",
-  viewAllHref: "/company/engineers",
-  items: [
-    { name: "田中 慎一", itssLevel: 4, skills: ["Java", "Spring Boot", "AWS"], location: "東京都" },
-    { name: "伊藤 まどか", itssLevel: 3, skills: ["React", "TypeScript", "Next.js"], location: "フルリモート" },
-    { name: "渡辺 隆", itssLevel: 5, skills: ["AWS", "Docker", "Kubernetes"], location: "大阪府" },
-  ],
-} as const;
-
-export const COMPANY_RECENT_MESSAGES = {
-  title: "最近のメッセージ",
-  viewAllLabel: "メッセージ一覧を見る",
-  viewAllHref: "/company/messages",
-  items: [
-    {
-      sender: "佐藤 健太",
-      preview: "面接の日程調整について、ご連絡ありがとうございます。",
-      time: "1時間前",
-      unread: true,
-    },
-    {
-      sender: "鈴木 美咲",
-      preview: "選考状況について確認させていただけますでしょうか。",
-      time: "5時間前",
-      unread: true,
-    },
-    {
-      sender: "高橋 大輔",
-      preview: "ご対応いただきありがとうございました。",
-      time: "2日前",
-      unread: false,
-    },
-  ],
-} as const;
 
 export const COMPANY_QUICK_ACTIONS = {
   title: "クイックアクション",

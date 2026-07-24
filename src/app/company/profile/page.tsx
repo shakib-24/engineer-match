@@ -3,10 +3,12 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { CompanyProfileHeader } from "@/components/company/CompanyProfileHeader";
 import { CompanyOverviewCard } from "@/components/company/CompanyOverviewCard";
 import { CompanyStatistics } from "@/components/company/CompanyStatistics";
-import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
-import { COMPANY_PROFILE_PAGE, COMPANY_PROFILE_STATISTICS } from "@/constants/company";
+import { COMPANY_NAV } from "@/constants/dashboard";
+import { COMPANY_PROFILE_PAGE } from "@/constants/company";
+import type { CompanyStatisticsItem } from "@/components/company/CompanyStatistics";
 import { createClient } from "@/lib/supabase/server";
-import { getCompanyProfile } from "@/lib/company/profile";
+import { getCompanyProfile, getCompanyHeaderIdentity } from "@/lib/company/profile";
+import { getCompanyMetrics } from "@/lib/company/dashboard";
 
 export const metadata: Metadata = {
   title: "企業プロフィール | ENGINEER MATCH",
@@ -14,20 +16,42 @@ export const metadata: Metadata = {
 };
 
 export default async function CompanyProfilePage() {
-  const user = USER_MENU.company;
   const supabase = await createClient();
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
-  const profile = authUser ? await getCompanyProfile(supabase, authUser.id) : null;
+
+  const [profile, identity, metrics] = await Promise.all([
+    authUser ? getCompanyProfile(supabase, authUser.id) : Promise.resolve(null),
+    getCompanyHeaderIdentity(supabase, authUser),
+    authUser
+      ? getCompanyMetrics(supabase, authUser.id)
+      : Promise.resolve({
+          publishedCount: 0,
+          draftCount: 0,
+          closedCount: 0,
+          totalApplicants: 0,
+          screeningCount: 0,
+          newApplicantsCount: 0,
+          acceptedCount: 0,
+        }),
+  ]);
+
+  const statistics: CompanyStatisticsItem[] = [
+    { label: "掲載中の求人・案件", value: String(metrics.publishedCount), icon: "briefcase", helper: "公開中" },
+    { label: "累計応募者数", value: String(metrics.totalApplicants), icon: "users", helper: "全期間" },
+    { label: "選考中の応募者", value: String(metrics.screeningCount), icon: "clock", helper: "対応待ち" },
+    { label: "採用決定数", value: String(metrics.acceptedCount), icon: "userCheck", helper: "全期間" },
+  ];
 
   return (
     <DashboardShell
       navItems={COMPANY_NAV}
       activeHref="/company/profile"
       pageTitle={COMPANY_PROFILE_PAGE.title}
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <div>
         <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
@@ -40,7 +64,7 @@ export default async function CompanyProfilePage() {
 
       <CompanyProfileHeader profile={profile} />
 
-      <CompanyStatistics items={COMPANY_PROFILE_STATISTICS} />
+      <CompanyStatistics items={statistics} />
 
       <CompanyOverviewCard profile={profile} accountEmail={authUser?.email ?? null} />
     </DashboardShell>

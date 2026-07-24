@@ -1,9 +1,8 @@
 /**
- * Company (employer) module content (Japanese).
- * Company profile labels/options below back a real Supabase-backed CRUD
- * (see src/lib/company/profile.ts). COMPANY_PROFILE_STATISTICS further down
- * is still placeholder-only — it belongs to the jobs/applicants module,
- * which hasn't been wired up to real data yet.
+ * Company (employer) profile module content (Japanese). Backs a real
+ * Supabase CRUD (see src/lib/company/profile.ts). Statistics shown on the
+ * profile page are computed for real from public.opportunities/applications
+ * -- see getCompanyMetrics() in src/lib/company/dashboard.ts.
  */
 
 // ============================================================
@@ -66,16 +65,3 @@ export const COMPANY_PROFILE_ERRORS = {
     "企業プロフィールの保存に失敗しました。しばらくしてから再度お試しください。",
 } as const;
 
-export interface CompanyStatItem {
-  label: string;
-  value: string;
-  icon: string;
-  helper?: string;
-}
-
-export const COMPANY_PROFILE_STATISTICS: CompanyStatItem[] = [
-  { label: "掲載中の求人・案件", value: "6", icon: "briefcase", helper: "公開中" },
-  { label: "累計応募者数", value: "184", icon: "users", helper: "全期間" },
-  { label: "選考中の応募者", value: "23", icon: "clock", helper: "対応待ち" },
-  { label: "採用決定数", value: "17", icon: "userCheck", helper: "過去12ヶ月" },
-];

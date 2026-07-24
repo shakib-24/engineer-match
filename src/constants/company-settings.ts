@@ -1,6 +1,14 @@
 /**
- * Company Settings module placeholder content (Japanese).
- * UI only — no backend, no database, no real security logic.
+ * Company Settings module content (Japanese). Password change and account
+ * info are real (Supabase Auth / public.company_profiles). The remaining
+ * controls (notification preferences, 2FA, login history, session
+ * management, account deactivation/deletion) have no backing table or
+ * infrastructure in this schema yet -- kept visible per client instruction
+ * (do not remove existing UI), but honestly marked as not yet available
+ * rather than faking a save. Company profile visibility is not a toggle:
+ * public.company_profiles is always public by design (business rule BR-18,
+ * see company_profiles_select_all in 023_profile_policies.sql) -- there is
+ * no is_public column, intentionally.
  */
 
 export const COMPANY_SETTINGS_PAGE = {
@@ -8,68 +16,24 @@ export const COMPANY_SETTINGS_PAGE = {
   description: "アカウント・通知・セキュリティなどの設定を管理できます。",
 } as const;
 
-export const COMPANY_SETTINGS_DEMO_NOTE =
-  "※ UIデモのため、実際の設定変更・削除は行われません。";
+export const COMPANY_SETTINGS_UNAVAILABLE_NOTE =
+  "※ この設定は準備中のため、変更は保存されません。";
 
 // ============================================================
 // 1. アカウント設定
 // ============================================================
 
-export interface CompanyAccountTextField {
-  id: string;
-  label: string;
-  type: "text" | "email" | "tel";
-  autoComplete: string;
-  defaultValue: string;
-}
-
 export const COMPANY_ACCOUNT_SETTINGS = {
   title: "アカウント設定",
   description: "企業情報とアカウントの基本設定です。",
-  saveLabel: "変更を保存",
-  savedMessage: "変更を保存しました。",
-  timezoneLabel: "タイムゾーン",
-  languageLabel: "言語",
+  companyNameLabel: "企業名",
+  contactPersonLabel: "担当者名",
+  emailLabel: "メールアドレス",
+  unset: "未設定",
+  editHint: "企業名・担当者名は企業プロフィールで編集できます。",
+  editLinkLabel: "企業プロフィールを編集",
+  editLinkHref: "/company/profile",
 } as const;
-
-export const COMPANY_ACCOUNT_TEXT_FIELDS: CompanyAccountTextField[] = [
-  {
-    id: "companyName",
-    label: "企業名",
-    type: "text",
-    autoComplete: "organization",
-    defaultValue: "株式会社テックイノベーション",
-  },
-  {
-    id: "contactName",
-    label: "担当者名",
-    type: "text",
-    autoComplete: "name",
-    defaultValue: "採用担当 佐藤",
-  },
-  {
-    id: "email",
-    label: "メールアドレス",
-    type: "email",
-    autoComplete: "email",
-    defaultValue: "recruit@tech-innovation.example.com",
-  },
-  {
-    id: "phone",
-    label: "電話番号",
-    type: "tel",
-    autoComplete: "tel",
-    defaultValue: "03-1234-5678",
-  },
-];
-
-export const COMPANY_TIMEZONE_OPTIONS = [
-  "Asia/Tokyo（日本標準時）",
-  "UTC（協定世界時）",
-  "America/Los_Angeles（太平洋標準時）",
-] as const;
-
-export const COMPANY_LANGUAGE_OPTIONS = ["日本語", "English"] as const;
 
 // ============================================================
 // 2. 通知設定 / 4. 公開設定（共通トグル型）
@@ -134,11 +98,14 @@ export const COMPANY_NOTIFICATION_TOGGLES: CompanyToggleItem[] = [
 export const COMPANY_SECURITY_SETTINGS = {
   title: "セキュリティ設定",
   description: "アカウントのセキュリティに関する設定です。",
-  passwordChange: {
-    label: "パスワード変更",
-    description: "最終更新日：2026年5月12日",
-    buttonLabel: "パスワードを変更",
-  },
+  newPasswordLabel: "新しいパスワード",
+  confirmPasswordLabel: "新しいパスワード（確認）",
+  submitLabel: "パスワードを変更",
+  submittingLabel: "変更中…",
+  successMessage: "パスワードを変更しました。",
+  errorTooShort: "パスワードは8文字以上で入力してください。",
+  errorMismatch: "パスワードが一致しません。",
+  errorGeneric: "パスワードの変更に失敗しました。しばらくしてから再度お試しください。",
   twoFactor: {
     label: "2段階認証",
     description: "ログイン時に確認コードを要求し、セキュリティを強化します。",
@@ -194,23 +161,15 @@ export const COMPANY_LOGIN_HISTORY: CompanyLoginHistoryItem[] = [
 
 export const COMPANY_VISIBILITY_SETTINGS = {
   title: "公開設定",
-  description: "企業情報の公開範囲を設定できます。",
-  savedMessage: "公開設定を保存しました。",
+  description: "企業情報の公開範囲を確認できます。",
+  profilePublicLabel: "企業プロフィール公開",
+  profilePublicNote: "企業プロフィールは常に公開されます。（非公開設定はご利用いただけません）",
+  jobsPublicLabel: "求人・案件の公開",
+  jobsPublicNote: "各求人・案件の公開・非公開は「求人・案件管理」から設定できます。",
+  jobsPublicHref: "/company/jobs",
 } as const;
 
 export const COMPANY_VISIBILITY_TOGGLES: CompanyToggleItem[] = [
-  {
-    id: "profilePublic",
-    label: "企業プロフィール公開",
-    description: "エンジニアがあなたの企業プロフィールを閲覧できるようにします。",
-    defaultChecked: true,
-  },
-  {
-    id: "jobsPublic",
-    label: "求人・案件公開",
-    description: "公開中の求人・案件を検索結果に表示します。",
-    defaultChecked: true,
-  },
   {
     id: "contactVisible",
     label: "連絡先表示",

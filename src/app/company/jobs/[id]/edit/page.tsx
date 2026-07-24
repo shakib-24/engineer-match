@@ -4,10 +4,11 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { EditJobForm } from "@/components/company/EditJobForm";
-import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
+import { COMPANY_NAV } from "@/constants/dashboard";
 import { EDIT_JOB_META } from "@/constants/company-jobs";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyOpportunity, listSkills } from "@/lib/company/jobs";
+import { getCompanyHeaderIdentity } from "@/lib/company/profile";
 
 interface CompanyEditJobPageProps {
   params: Promise<{ id: string }>;
@@ -43,16 +44,19 @@ export default async function CompanyEditJobPage({ params }: CompanyEditJobPageP
     notFound();
   }
 
-  const skills = await listSkills(supabase);
-  const user = USER_MENU.company;
+  const [skills, identity] = await Promise.all([
+    listSkills(supabase),
+    getCompanyHeaderIdentity(supabase, authUser),
+  ]);
 
   return (
     <DashboardShell
       navItems={COMPANY_NAV}
       activeHref="/company/jobs"
       pageTitle="求人を編集"
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <div>
         <Link

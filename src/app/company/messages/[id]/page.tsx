@@ -1,66 +1,117 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { ConversationList } from "@/components/messages/ConversationList";
-import { MessageThread } from "@/components/messages/MessageThread";
-import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
-import { CONVERSATIONS, MESSAGES_PAGE_COMPANY } from "@/constants/messages";
+import { CompanyConversationList } from "@/components/messages/CompanyConversationList";
+import { CompanyMessageThread } from "@/components/messages/CompanyMessageThread";
+import { COMPANY_NAV } from "@/constants/dashboard";
+import {
+  COMPANY_CONVERSATION_NOT_FOUND_LABELS,
+  COMPANY_MESSAGES_PAGE,
+  COMPANY_MESSAGES_SIGN_IN_REQUIRED_LABELS,
+} from "@/constants/company-messages";
+import { createClient } from "@/lib/supabase/server";
+import { getOrCreateCompanyConversationForApplication, listCompanyConversations } from "@/lib/company/chat";
+import { getCompanyHeaderIdentity } from "@/lib/company/profile";
 
 interface CompanyConversationPageProps {
   params: Promise<{ id: string }>;
 }
 
-export function generateStaticParams() {
-  return CONVERSATIONS.map((conversation) => ({ id: conversation.id }));
-}
-
-export async function generateMetadata({
-  params,
-}: CompanyConversationPageProps): Promise<Metadata> {
-  const { id } = await params;
-  const conversation = CONVERSATIONS.find((item) => item.id === id);
-
-  return {
-    title: conversation
-      ? `${conversation.participantName} | ${MESSAGES_PAGE_COMPANY.title} | ENGINEER MATCH`
-      : `${MESSAGES_PAGE_COMPANY.title} | ENGINEER MATCH`,
-  };
-}
+export const metadata: Metadata = {
+  title: `${COMPANY_MESSAGES_PAGE.title} | ENGINEER MATCH`,
+};
 
 export default async function CompanyConversationPage({
   params,
 }: CompanyConversationPageProps) {
   const { id } = await params;
-  const conversation = CONVERSATIONS.find((item) => item.id === id);
+  const supabase = await createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  const identity = await getCompanyHeaderIdentity(supabase, authUser);
 
-  if (!conversation) {
-    notFound();
+  if (!authUser) {
+    return (
+      <DashboardShell
+        navItems={COMPANY_NAV}
+        activeHref="/company/messages"
+        pageTitle={COMPANY_MESSAGES_PAGE.title}
+        userName={identity.name}
+        userInitials={identity.initials}
+        userEmail={identity.email}
+      >
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
+          <p className="text-sm font-semibold text-foreground">
+            {COMPANY_MESSAGES_SIGN_IN_REQUIRED_LABELS.title}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {COMPANY_MESSAGES_SIGN_IN_REQUIRED_LABELS.description}
+          </p>
+          <Link
+            href={COMPANY_MESSAGES_SIGN_IN_REQUIRED_LABELS.ctaHref}
+            className="mt-2 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            {COMPANY_MESSAGES_SIGN_IN_REQUIRED_LABELS.ctaLabel}
+          </Link>
+        </div>
+      </DashboardShell>
+    );
   }
 
-  const user = USER_MENU.company;
+  // Sequential, not Promise.all: getOrCreateCompanyConversationForApplication
+  // may insert a new chat_rooms row (lazy create on first open), and
+  // listCompanyConversations must see that row rather than racing ahead of it.
+  const conversation = await getOrCreateCompanyConversationForApplication(supabase, authUser.id, id);
+  const conversations = await listCompanyConversations(supabase, authUser.id);
+
+  if (!conversation) {
+    return (
+      <DashboardShell
+        navItems={COMPANY_NAV}
+        activeHref="/company/messages"
+        pageTitle={COMPANY_MESSAGES_PAGE.title}
+        userName={identity.name}
+        userInitials={identity.initials}
+        userEmail={identity.email}
+      >
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center shadow-sm">
+          <p className="text-sm font-semibold text-foreground">
+            {COMPANY_CONVERSATION_NOT_FOUND_LABELS.title}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {COMPANY_CONVERSATION_NOT_FOUND_LABELS.description}
+          </p>
+          <Link
+            href={COMPANY_CONVERSATION_NOT_FOUND_LABELS.ctaHref}
+            className="mt-2 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            {COMPANY_CONVERSATION_NOT_FOUND_LABELS.ctaLabel}
+          </Link>
+        </div>
+      </DashboardShell>
+    );
+  }
 
   return (
     <DashboardShell
       navItems={COMPANY_NAV}
       activeHref="/company/messages"
-      pageTitle={conversation.participantName}
-      userName={user.name}
-      userInitials={user.initials}
+      pageTitle={conversation.engineerName}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <p className="hidden text-sm text-muted-foreground lg:block">
-        {MESSAGES_PAGE_COMPANY.description}
+        {COMPANY_MESSAGES_PAGE.description}
       </p>
 
       <div className="grid grid-cols-1 gap-6 lg:h-[calc(100svh-220px)] lg:min-h-[520px] lg:grid-cols-[380px_1fr] lg:grid-rows-[minmax(0,1fr)]">
         <div className="hidden lg:block lg:h-full lg:min-h-0">
-          <ConversationList
-            conversations={CONVERSATIONS}
-            activeId={conversation.id}
-            basePath="/company/messages"
-          />
+          <CompanyConversationList conversations={conversations} activeId={id} />
         </div>
         <div className="h-[calc(100svh-160px)] min-h-[480px] lg:h-full lg:min-h-0">
-          <MessageThread conversation={conversation} basePath="/company/messages" />
+          <CompanyMessageThread conversation={conversation} currentUserId={authUser.id} />
         </div>
       </div>
     </DashboardShell>

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { TriangleAlert } from "lucide-react";
-import { COMPANY_DANGER_ZONE, COMPANY_SETTINGS_DEMO_NOTE } from "@/constants/company-settings";
+import { COMPANY_DANGER_ZONE, COMPANY_SETTINGS_UNAVAILABLE_NOTE } from "@/constants/company-settings";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -95,7 +95,7 @@ export function CompanyDangerZone() {
 
   function handleConfirm() {
     setActiveDialog(null);
-    setToastMessage(COMPANY_SETTINGS_DEMO_NOTE);
+    setToastMessage(COMPANY_SETTINGS_UNAVAILABLE_NOTE);
     window.setTimeout(() => setToastMessage(null), 3000);
   }
 
@@ -142,7 +142,7 @@ export function CompanyDangerZone() {
         </div>
       </div>
 
-      <p className="mt-5 text-xs text-red-700/70">{COMPANY_SETTINGS_DEMO_NOTE}</p>
+      <p className="mt-5 text-xs text-red-700/70">{COMPANY_SETTINGS_UNAVAILABLE_NOTE}</p>
 
       <ConfirmDialog
         isOpen={activeDialog === "deactivate"}

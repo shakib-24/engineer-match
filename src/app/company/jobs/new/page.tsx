@@ -3,10 +3,11 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { CreateJobForm } from "@/components/company/CreateJobForm";
-import { COMPANY_NAV, USER_MENU } from "@/constants/dashboard";
+import { COMPANY_NAV } from "@/constants/dashboard";
 import { CREATE_JOB_META, JOB_DETAIL_META } from "@/constants/company-jobs";
 import { createClient } from "@/lib/supabase/server";
 import { listSkills } from "@/lib/company/jobs";
+import { getCompanyHeaderIdentity } from "@/lib/company/profile";
 
 export const metadata: Metadata = {
   title: "求人・案件を新規作成 | ENGINEER MATCH",
@@ -14,17 +15,23 @@ export const metadata: Metadata = {
 };
 
 export default async function CompanyNewJobPage() {
-  const user = USER_MENU.company;
   const supabase = await createClient();
-  const skills = await listSkills(supabase);
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  const [skills, identity] = await Promise.all([
+    listSkills(supabase),
+    getCompanyHeaderIdentity(supabase, authUser),
+  ]);
 
   return (
     <DashboardShell
       navItems={COMPANY_NAV}
       activeHref="/company/jobs"
       pageTitle="新規掲載"
-      userName={user.name}
-      userInitials={user.initials}
+      userName={identity.name}
+      userInitials={identity.initials}
+      userEmail={identity.email}
     >
       <div>
         <Link
